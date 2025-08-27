@@ -204,53 +204,53 @@ export default function CompanyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Navigation */}
-        <div className="mb-6">
+        <div className="mb-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200 hover:bg-blue-50 px-3 py-2 rounded-lg"
           >
             ← Back to Companies
           </Link>
         </div>
 
         {/* Enhanced Company Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-2xl overflow-hidden shadow-xl mb-8">
-          <div className="p-8 text-white">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-2xl overflow-hidden shadow-xl mb-10">
+          <div className="p-8 lg:p-12 text-white">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-              <div className="mb-6 lg:mb-0">
-                <h1 className="text-4xl lg:text-5xl font-bold mb-4 leading-tight">
+              <div className="mb-8 lg:mb-0">
+                <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
                   {companyData.company_data?.name ||
                     companyData.company_name ||
                     ticker}{" "}
                   <span className="text-blue-200">({ticker})</span>
                 </h1>
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <span className="px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-full text-sm font-medium">
+                <div className="flex flex-wrap items-center gap-4 mb-6">
+                  <span className="px-5 py-3 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-full text-sm font-medium">
                     {companyData.exchange || "N/A"}
                   </span>
-                  <span className="px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-full text-sm font-medium">
+                  <span className="px-5 py-3 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-full text-sm font-medium">
                     {companyData.currency || "USD"}
                   </span>
-                  <span className="px-4 py-2 bg-emerald-500 text-white rounded-full text-sm font-bold">
+                  <span className="px-5 py-3 bg-emerald-500 text-white rounded-full text-sm font-bold">
                     ✓ FRC Covered
                   </span>
                 </div>
 
                 {/* Industry & Sector Info */}
-                <div className="flex flex-wrap items-center gap-6 text-blue-100">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">🏭 Industry</span>
-                    <span className="text-sm font-medium">
+                <div className="flex flex-wrap items-center gap-8 text-blue-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">🏭 Industry</span>
+                    <span className="text-base font-medium">
                       {companyData.industry ||
                         companyData.company_data?.industry ||
                         "N/A"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">🏢 Sector</span>
-                    <span className="text-sm font-medium">
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">🏢 Sector</span>
+                    <span className="text-base font-medium">
                       {companyData.sector ||
                         companyData.company_data?.sector ||
                         "N/A"}
@@ -260,12 +260,12 @@ export default function CompanyPage() {
               </div>
 
               {/* Data Availability Grid */}
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-2">
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-1 lg:gap-3">
                 {(companyData.data_available?.has_reports ||
                   companyData.reports_count > 0 ||
                   companyData.data?.reports?.length > 0) && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg">
-                    <span className="text-purple-300">📄</span>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg">
+                    <span className="text-purple-300 text-lg">📄</span>
                     <span className="text-sm font-medium">
                       Reports (
                       {companyData.reports?.length ||
@@ -279,23 +279,23 @@ export default function CompanyPage() {
 
                 {(companyData.data_available?.has_chart ||
                   companyData.has_chart) && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg">
-                    <span className="text-green-300">📊</span>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg">
+                    <span className="text-green-300 text-lg">📊</span>
                     <span className="text-sm font-medium">Charts</span>
                   </div>
                 )}
 
                 {(companyData.data_available?.has_metrics ||
                   companyData.has_metrics) && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg">
-                    <span className="text-blue-300">📈</span>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg">
+                    <span className="text-blue-300 text-lg">📈</span>
                     <span className="text-sm font-medium">Metrics</span>
                   </div>
                 )}
 
                 {companyData.data_available?.has_ai_analysis && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg">
-                    <span className="text-orange-300">🤖</span>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg">
+                    <span className="text-orange-300 text-lg">🤖</span>
                     <span className="text-sm font-medium">AI Analysis</span>
                   </div>
                 )}
@@ -306,8 +306,8 @@ export default function CompanyPage() {
           {/* Quick Stats Bar */}
           <div className="bg-white bg-opacity-10 backdrop-blur-sm border-t border-white border-opacity-20">
             <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white divide-opacity-20">
-              <div className="p-4 text-center">
-                <div className="text-2xl font-bold text-white">
+              <div className="p-6 text-center">
+                <div className="text-2xl lg:text-3xl font-bold text-white mb-1">
                   {companyData.stock_data?.length ||
                     companyData.stock_data_points ||
                     "N/A"}
@@ -316,8 +316,8 @@ export default function CompanyPage() {
                   Stock Data Points
                 </div>
               </div>
-              <div className="p-4 text-center">
-                <div className="text-2xl font-bold text-white">
+              <div className="p-6 text-center">
+                <div className="text-2xl lg:text-3xl font-bold text-white mb-1">
                   {companyData.reports?.length ||
                     companyData.reports_count ||
                     companyData.data?.reports?.length ||
@@ -327,8 +327,8 @@ export default function CompanyPage() {
                   Reports Available
                 </div>
               </div>
-              <div className="p-4 text-center">
-                <div className="text-2xl font-bold text-emerald-300">
+              <div className="p-6 text-center">
+                <div className="text-2xl lg:text-3xl font-bold text-emerald-300 mb-1">
                   {companyData.data_available?.has_chart ||
                   companyData.has_chart
                     ? "✓"
@@ -338,8 +338,8 @@ export default function CompanyPage() {
                   Stock Performance
                 </div>
               </div>
-              <div className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-300">
+              <div className="p-6 text-center">
+                <div className="text-2xl lg:text-3xl font-bold text-purple-300 mb-1">
                   {companyData.data_available?.has_ai_analysis ? "✓" : "✗"}
                 </div>
                 <div className="text-xs text-blue-200 font-medium">
@@ -351,84 +351,137 @@ export default function CompanyPage() {
         </div>
 
         {/* Content Section */}
-        <div className="space-y-8">
+        <div className="space-y-10">
           {/* Chart Component */}
           {(chartData ||
             companyData.data_available?.has_chart ||
             companyData.has_chart) && (
-            <ChartComponent
-              chartData={chartData}
-              ticker={ticker}
-              companyName={companyData.company_name}
-              exchange={companyData.exchange}
-              currency={
-                companyData.company_profile?.currency ||
-                companyData.currency ||
-                "CAD"
-              }
-            />
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <ChartComponent
+                chartData={chartData}
+                ticker={ticker}
+                companyName={companyData.company_name}
+                exchange={companyData.exchange}
+                currency={
+                  companyData.company_profile?.currency ||
+                  companyData.currency ||
+                  "CAD"
+                }
+              />
+            </div>
           )}
 
           {/* Detailed Metrics Table */}
           {(metricsData ||
             companyData.data_available?.has_metrics ||
             companyData.has_metrics) && (
-            <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Report Performance Metrics ({(metricsData || []).length}{" "}
-                  reports)
-                </h3>
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <div className="px-8 py-6 bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                      Report Performance Metrics
+                    </h3>
+                    <p className="text-gray-600">
+                      Comprehensive analysis of {(metricsData || []).length}{" "}
+                      report{(metricsData || []).length !== 1 ? "s" : ""}{" "}
+                      performance
+                    </p>
+                  </div>
+                  <div className="mt-4 sm:mt-0">
+                    <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                      {(metricsData || []).length} Reports
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 border-collapse">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Report Number
+              <div className="overflow-x-auto shadow-inner bg-gray-50 rounded-lg">
+                <table className="min-w-full border-collapse border border-gray-400">
+                  <thead className="bg-gradient-to-r from-slate-800 to-slate-700 sticky top-0 z-10">
+                    <tr className="border-b-2 border-slate-600">
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-blue-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">Report #</span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Report Title
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-emerald-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">Report Title</span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Company
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-purple-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">Company</span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Ticker
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-indigo-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">Ticker</span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Price on Release
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-green-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">
+                            Price on Release
+                          </span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Publication Date
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-orange-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">
+                            Publication Date
+                          </span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Avg Volume Post 5 Days
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-cyan-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">Avg Volume 5D</span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Avg Volume Post 10 Days
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-teal-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">Avg Volume 10D</span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                        Volume Change 30 Days (%)
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-rose-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">
+                            Volume Δ 30D (%)
+                          </span>
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Volume Change Pre-Post 30 Days (%)
+                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 bg-amber-400 rounded-full shadow-sm"></div>
+                          <span className="font-semibold">
+                            Pre-Post Δ 30D (%)
+                          </span>
+                        </div>
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white">
                     {(metricsData || []).map((report, index) => (
                       <tr
                         key={`${ticker}-${report["Report Number"]}`}
                         className={`${
                           index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        } hover:bg-blue-50 transition-colors duration-150`}
+                        } hover:bg-blue-50 transition-colors duration-150 border-b-2 border-gray-400`}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-400">
                           {report["Report Number"]}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200 max-w-xs">
+                        <td className="px-6 py-4 text-sm text-gray-900 border-r-2 border-gray-400 max-w-xs">
                           <div
                             className="truncate"
                             title={report["Report Title"]}
@@ -436,30 +489,30 @@ export default function CompanyPage() {
                             {report["Report Title"]}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-400">
                           {companyData.company_profile?.name ||
                             companyData.company_data?.name ||
                             companyData.company_name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-semibold border-r border-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-semibold border-r-2 border-gray-400">
                           {ticker}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
                           {report["Price on Release"]}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
                           {report["Publication Date"]}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
                           {report["Avg Volume Post 5 Days"]?.toLocaleString() ||
                             "0"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
                           {report[
                             "Avg Volume Post 10 Days"
                           ]?.toLocaleString() || "0"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm border-r border-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm border-r-2 border-gray-400">
                           <span
                             className={`font-semibold ${
                               report["Volume Change 30 Days (%)"] > 0
@@ -498,9 +551,13 @@ export default function CompanyPage() {
               </div>
 
               {(!metricsData || metricsData.length === 0) && (
-                <div className="text-center py-12">
-                  <p className="text-gray-500 text-lg">
+                <div className="text-center py-16">
+                  <div className="text-gray-400 text-5xl mb-4">📊</div>
+                  <p className="text-gray-500 text-lg font-medium">
                     No metrics data available for this company.
+                  </p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Check back later as we continuously update our data.
                   </p>
                 </div>
               )}
@@ -511,43 +568,50 @@ export default function CompanyPage() {
           {(metricsData ||
             companyData.data_available?.has_metrics ||
             companyData.has_metrics) && (
-            <TableComponent
-              metrics={metricsData || []}
-              ticker={ticker}
-              currency={
-                companyData.company_profile?.currency ||
-                companyData.currency ||
-                "CAD"
-              }
-              totalReports={
-                companyData.reports?.length ||
-                companyData.reports_count ||
-                companyData.data?.reports?.length ||
-                0
-              }
-            />
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <TableComponent
+                metrics={metricsData || []}
+                ticker={ticker}
+                currency={
+                  companyData.company_profile?.currency ||
+                  companyData.currency ||
+                  "CAD"
+                }
+                totalReports={
+                  companyData.reports?.length ||
+                  companyData.reports_count ||
+                  companyData.data?.reports?.length ||
+                  0
+                }
+              />
+            </div>
           )}
 
           {/* Analysis Component */}
           {(analysisData || companyData.data_available?.has_ai_analysis) && (
-            <AnalysisComponent
-              analysis={analysisData || ""}
-              ticker={ticker}
-              status="success"
-              generatedDate={companyData.analysis_date}
-            />
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <AnalysisComponent
+                analysis={analysisData || ""}
+                ticker={ticker}
+                status="success"
+                generatedDate={companyData.analysis_date}
+              />
+            </div>
           )}
 
           {/* No data message */}
           {!chartData && !metricsData && !analysisData && (
-            <div className="text-center py-16 bg-white rounded-xl shadow-sm">
-              <div className="text-gray-400 text-6xl mb-4">📊</div>
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+            <div className="text-center py-20 bg-white rounded-xl shadow-lg border border-gray-200">
+              <div className="text-gray-400 text-7xl mb-6">📊</div>
+              <h3 className="text-2xl font-bold text-gray-600 mb-4">
                 Limited Data Available
               </h3>
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-lg max-w-md mx-auto">
                 This company has basic information but no additional charts,
                 metrics, or analysis data available yet.
+              </p>
+              <p className="text-gray-400 text-sm mt-4">
+                We're continuously expanding our coverage. Check back soon!
               </p>
             </div>
           )}
