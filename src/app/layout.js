@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navbar from "@/components/navbar/InteractiveNavbar";
+import { NextUIProvider } from "@nextui-org/system";
 
 export const metadata = {
   title: "FRC Business Analytics",
@@ -10,8 +11,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        <main>{children}</main>
+        <NextUIProvider>
+          <Navbar />
+          <main>{children}</main>
+        </NextUIProvider>
       </body>
     </html>
   );
