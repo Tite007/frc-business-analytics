@@ -1,36 +1,131 @@
+// CLIENT-SIDE VERSION - Use this for client-side rendering
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import ChartComponent from "@/components/ChartComponent";
 import TableComponent from "@/components/TableComponent";
 import AnalysisComponent from "@/components/AnalysisComponent";
 import { getCompanyData } from "@/lib/api";
 import Link from "next/link";
 
-export async function generateMetadata({ params }) {
-  // In Next.js 15, params must be awaited
-  const resolvedParams = await params;
-  const ticker = resolvedParams.company.toUpperCase();
-  const companyResponse = await getCompanyData(ticker, "company");
-  const companyData = companyResponse?.company || companyResponse?.data;
-  return {
-    title: `${
-      companyData?.company_profile?.name ||
-      companyData?.company_data?.name ||
-      ticker
-    } Profile`,
-  };
-}
+export default function CompanyPage() {
+  const params = useParams();
+  const ticker = params?.company?.toUpperCase();
 
-export default async function CompanyPage({ params }) {
-  // In Next.js 15, params must be awaited
-  const resolvedParams = await params;
-  const ticker = resolvedParams.company.toUpperCase();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [companyData, setCompanyData] = useState(null);
+  const [chartData, setChartData] = useState(null);
+  const [metricsData, setMetricsData] = useState(null);
+  const [analysisData, setAnalysisData] = useState(null);
 
-  // Get company details first
-  const companyResponse = await getCompanyData(ticker, "company");
+  useEffect(() => {
+    if (!ticker) return;
 
-  if (
-    !companyResponse ||
-    (!companyResponse.success && companyResponse.status !== "success")
-  ) {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get company details first
+        const companyResponse = await getCompanyData(ticker, "company");
+
+        // Enhanced error handling
+        if (
+          !companyResponse ||
+          companyResponse.error ||
+          (!companyResponse.success && companyResponse.status !== "success")
+        ) {
+          // Log the error details for debugging
+          console.error("Company data fetch failed:", {
+            ticker,
+            response: companyResponse,
+            error: companyResponse?.error,
+            message: companyResponse?.message,
+            status: companyResponse?.status,
+            baseURL: companyResponse?.baseURL,
+          });
+
+          setError(companyResponse);
+          setLoading(false);
+          return;
+        }
+
+        // Extract the actual company data from the response (handle both formats)
+        const fetchedCompanyData =
+          companyResponse.company || companyResponse.data;
+        setCompanyData(fetchedCompanyData);
+
+        // Fetch additional data in parallel (only if not included in main response)
+        const [chartResponse, metrics, analysis] = await Promise.all([
+          fetchedCompanyData.data_available?.has_chart ||
+          fetchedCompanyData.has_chart
+            ? getCompanyData(ticker, "chart")
+            : null,
+          (fetchedCompanyData.data_available?.has_metrics ||
+            fetchedCompanyData.has_metrics) &&
+          !fetchedCompanyData.data?.metrics
+            ? getCompanyData(ticker, "metrics")
+            : null,
+          fetchedCompanyData.data_available?.has_ai_analysis &&
+          !fetchedCompanyData.data?.ai_analysis
+            ? getCompanyData(ticker, "analysis")
+            : null,
+        ]);
+
+        // Safely extract chart data
+        const fetchedChartData =
+          chartResponse?.chart_data ||
+          fetchedCompanyData.chart_json ||
+          fetchedCompanyData.chart_data ||
+          fetchedCompanyData.data?.chart_json ||
+          fetchedCompanyData.data?.chart_data;
+
+        // Extract metrics and analysis
+        const fetchedMetricsData =
+          fetchedCompanyData.data?.metrics ||
+          metrics?.metrics ||
+          (metrics?.company || metrics?.data)?.metrics;
+
+        const fetchedAnalysisData =
+          fetchedCompanyData.data?.ai_analysis ||
+          (analysis?.company || analysis?.data)?.ai_analysis ||
+          analysis?.analysis;
+
+        setChartData(fetchedChartData);
+        setMetricsData(fetchedMetricsData);
+        setAnalysisData(fetchedAnalysisData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setError({ error: true, message: error.message });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [ticker]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700">
+            Loading {ticker} data...
+          </h2>
+          <p className="text-gray-500 mt-2">
+            Please wait while we fetch the company information.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
     return (
       <div className="container mx-auto p-4">
         <div className="mb-4">
@@ -44,14 +139,36 @@ export default async function CompanyPage({ params }) {
         <div className="text-center py-16">
           <div className="text-red-500 text-6xl mb-4">❌</div>
           <h1 className="text-3xl font-bold text-red-600 mb-4">
-            Company Not Found
+            {error?.error ? "API Connection Error" : "Company Not Found"}
           </h1>
           <p className="text-gray-600 mb-4">
-            {ticker} is not found or not covered by FRC analysis.
+            {error?.error
+              ? `Failed to connect to backend API: ${
+                  error.message || "Unknown error"
+                }`
+              : `${ticker} is not found or not covered by FRC analysis.`}
           </p>
+          {error?.error && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-left max-w-2xl mx-auto">
+              <h3 className="font-semibold text-red-800 mb-2">
+                Debug Information:
+              </h3>
+              <div className="text-sm text-red-700 space-y-1">
+                <p>
+                  <strong>API Base URL:</strong> {error.baseURL}
+                </p>
+                <p>
+                  <strong>Status:</strong> {error.status}
+                </p>
+                <p>
+                  <strong>Error:</strong> {error.message}
+                </p>
+              </div>
+            </div>
+          )}
           <Link
             href="/"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mt-4 inline-block"
           >
             ← Back to Companies
           </Link>
@@ -60,44 +177,30 @@ export default async function CompanyPage({ params }) {
     );
   }
 
-  // Extract the actual company data from the response (handle both formats)
-  const companyData = companyResponse.company || companyResponse.data;
-
-  // Fetch additional data in parallel (only if not included in main response)
-  const [chartResponse, metrics, analysis] = await Promise.all([
-    companyData.data_available?.has_chart || companyData.has_chart
-      ? getCompanyData(ticker, "chart")
-      : null,
-    (companyData.data_available?.has_metrics || companyData.has_metrics) &&
-    !companyData.data?.metrics
-      ? getCompanyData(ticker, "metrics")
-      : null,
-    companyData.data_available?.has_ai_analysis &&
-    !companyData.data?.ai_analysis
-      ? getCompanyData(ticker, "analysis")
-      : null,
-  ]).catch((error) => {
-    console.error("Error fetching additional data:", error);
-    return [null, null, null];
-  });
-
-  // Safely extract chart data (check both possible field names and chart API response)
-  const chartData =
-    chartResponse?.chart_data ||
-    companyData.chart_json ||
-    companyData.chart_data ||
-    companyData.data?.chart_json ||
-    companyData.data?.chart_data;
-
-  // Extract metrics and analysis (from main response or additional fetch)
-  const metricsData =
-    companyData.data?.metrics ||
-    metrics?.metrics ||
-    (metrics?.company || metrics?.data)?.metrics;
-  const analysisData =
-    companyData.data?.ai_analysis ||
-    (analysis?.company || analysis?.data)?.ai_analysis ||
-    analysis?.ai_analysis;
+  // No company data
+  if (!companyData) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            ← Back to Companies
+          </Link>
+        </div>
+        <div className="text-center py-16">
+          <div className="text-gray-400 text-6xl mb-4">🔍</div>
+          <h1 className="text-3xl font-bold text-gray-600 mb-4">
+            No Data Available
+          </h1>
+          <p className="text-gray-500 mb-4">
+            No company data could be loaded for {ticker}.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -118,21 +221,17 @@ export default async function CompanyPage({ params }) {
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="mb-6 lg:mb-0">
                 <h1 className="text-4xl lg:text-5xl font-bold mb-4 leading-tight">
-                  {companyData.company_profile?.name ||
-                    companyData.company_data?.name ||
-                    companyData.company_name}{" "}
+                  {companyData.company_data?.name ||
+                    companyData.company_name ||
+                    ticker}{" "}
                   <span className="text-blue-200">({ticker})</span>
                 </h1>
                 <div className="flex flex-wrap items-center gap-3 mb-4">
                   <span className="px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-full text-sm font-medium">
-                    {companyData.company_profile?.exchange ||
-                      companyData.exchange ||
-                      companyData.company_data?.exchange?.[0]}
+                    {companyData.exchange || "N/A"}
                   </span>
                   <span className="px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-full text-sm font-medium">
-                    {companyData.company_profile?.currency ||
-                      companyData.currency ||
-                      "CAD"}
+                    {companyData.currency || "USD"}
                   </span>
                   <span className="px-4 py-2 bg-emerald-500 text-white rounded-full text-sm font-bold">
                     ✓ FRC Covered
@@ -144,14 +243,17 @@ export default async function CompanyPage({ params }) {
                   <div className="flex items-center gap-2">
                     <span className="text-sm">🏭 Industry</span>
                     <span className="text-sm font-medium">
-                      {companyData.company_profile?.industry ||
-                        "Other Industrial Metals & Mining"}
+                      {companyData.industry ||
+                        companyData.company_data?.industry ||
+                        "N/A"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">🏢 Sector</span>
                     <span className="text-sm font-medium">
-                      {companyData.company_profile?.sector || "Basic Materials"}
+                      {companyData.sector ||
+                        companyData.company_data?.sector ||
+                        "N/A"}
                     </span>
                   </div>
                 </div>
@@ -260,7 +362,6 @@ export default async function CompanyPage({ params }) {
               companyName={companyData.company_name}
               exchange={companyData.exchange}
               currency={
-                metrics?.currency ||
                 companyData.company_profile?.currency ||
                 companyData.currency ||
                 "CAD"
@@ -414,13 +515,11 @@ export default async function CompanyPage({ params }) {
               metrics={metricsData || []}
               ticker={ticker}
               currency={
-                metrics?.currency ||
                 companyData.company_profile?.currency ||
                 companyData.currency ||
                 "CAD"
               }
               totalReports={
-                metrics?.total_reports ||
                 companyData.reports?.length ||
                 companyData.reports_count ||
                 companyData.data?.reports?.length ||
@@ -434,10 +533,8 @@ export default async function CompanyPage({ params }) {
             <AnalysisComponent
               analysis={analysisData || ""}
               ticker={ticker}
-              status={analysis?.status || "success"}
-              generatedDate={
-                analysis?.data?.generated_date || companyData.analysis_date
-              }
+              status="success"
+              generatedDate={companyData.analysis_date}
             />
           )}
 

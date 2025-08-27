@@ -6,8 +6,8 @@ const api = axios.create({
 
 // Enhanced API functions for the FRC backend
 export async function getCompanyData(ticker, endpoint = "companies") {
+  let url;
   try {
-    let url;
     switch (endpoint) {
       case "companies":
         url = "/api/frc/companies";
@@ -16,6 +16,7 @@ export async function getCompanyData(ticker, endpoint = "companies") {
         url = `/api/frc/company/${ticker}`;
         break;
       case "chart":
+      case "stock":
         url = `/api/frc/chart/${ticker}`;
         break;
       case "metrics":
@@ -31,11 +32,27 @@ export async function getCompanyData(ticker, endpoint = "companies") {
         url = `/api/frc/${endpoint}/${ticker}`;
     }
 
+    console.log(`Making API request to: ${api.defaults.baseURL}${url}`);
     const response = await api.get(url);
     return response.data;
   } catch (error) {
-    console.error(`Error fetching ${endpoint} for ${ticker}:`, error);
-    return null;
+    console.error(`Error fetching ${endpoint} for ${ticker}:`, {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      baseURL: api.defaults.baseURL,
+      url: url,
+      code: error.code,
+    });
+
+    // Return error details for better debugging
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+      baseURL: api.defaults.baseURL,
+    };
   }
 }
 
@@ -43,7 +60,7 @@ export async function getCompanyData(ticker, endpoint = "companies") {
 export async function searchCompanies(query, limit = 20) {
   try {
     const response = await api.get(
-      `/api/frc/search?q=${encodeURIComponent(query)}&limit=${limit}`
+      `/api/frc/companies?search=${encodeURIComponent(query)}&limit=${limit}`
     );
     return response.data;
   } catch (error) {
@@ -55,7 +72,7 @@ export async function searchCompanies(query, limit = 20) {
 // Get database statistics
 export async function getStats() {
   try {
-    const response = await api.get("/api/frc/stats");
+    const response = await api.get("/api/frc/summary");
     return response.data;
   } catch (error) {
     console.error("Error fetching stats:", error);
@@ -74,15 +91,18 @@ export async function getCompanies(filters = {}) {
       params.append("has_reports", filters.has_reports);
     if (filters.has_stock_data !== undefined)
       params.append("has_stock_data", filters.has_stock_data);
+    if (filters.has_chart !== undefined)
+      params.append("has_chart", filters.has_chart);
     if (filters.limit) params.append("limit", filters.limit);
-    if (filters.offset) params.append("offset", filters.offset);
+    if (filters.skip) params.append("skip", filters.skip);
+    if (filters.search) params.append("search", filters.search);
 
     const url = `/api/frc/companies${
       params.toString() ? `?${params.toString()}` : ""
     }`;
     const response = await api.get(url);
 
-    // Return the full response object which contains { success, companies, total_companies, filters_applied }
+    // Return the full response object which contains { success, companies, total_companies }
     return response.data;
   } catch (error) {
     console.error("Error fetching companies:", error);
