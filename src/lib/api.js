@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000",
+  baseURL:
+    process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com",
 });
 
 // Enhanced API functions for the FRC backend
