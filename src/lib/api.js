@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000",
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000",
 });
 
 // Enhanced API functions for the FRC backend
@@ -13,11 +13,17 @@ export async function getCompanyData(ticker, endpoint = "companies") {
         url = "/api/frc/companies";
         break;
       case "company":
+        // Use the FRC company profile endpoint
+        url = `/api/frc/company/${ticker}`;
+        break;
+      case "profile":
         url = `/api/frc/company/${ticker}`;
         break;
       case "chart":
-      case "stock":
         url = `/api/frc/chart/${ticker}`;
+        break;
+      case "stock":
+        url = `/api/stock/${ticker}`;
         break;
       case "metrics":
         url = `/api/frc/metrics/${ticker}`;
@@ -26,7 +32,10 @@ export async function getCompanyData(ticker, endpoint = "companies") {
         url = `/api/frc/analysis/${ticker}`;
         break;
       case "reports":
-        url = `/api/frc/reports/${ticker}`;
+        url = `/api/reports/${ticker}`;
+        break;
+      case "stats":
+        url = "/api/frc/stats";
         break;
       default:
         url = `/api/frc/${endpoint}/${ticker}`;
@@ -34,6 +43,32 @@ export async function getCompanyData(ticker, endpoint = "companies") {
 
     console.log(`Making API request to: ${api.defaults.baseURL}${url}`);
     const response = await api.get(url);
+
+    // Handle the response based on the endpoint
+    if (endpoint === "company") {
+      // The FRC company endpoint should return a single company object
+      if (response.data.success || response.data.data) {
+        const companyData = response.data.data || response.data;
+        return {
+          success: true,
+          company: companyData,
+          data_available: {
+            has_reports: companyData.reports_count > 0,
+            has_chart: companyData.has_chart || false,
+            has_metrics: companyData.has_metrics || false,
+            has_ai_analysis:
+              companyData.status === "success" && companyData.analysis_date,
+          },
+        };
+      } else {
+        return {
+          error: true,
+          message: `Company with ticker '${ticker}' not found`,
+          status: 404,
+        };
+      }
+    }
+
     return response.data;
   } catch (error) {
     console.error(`Error fetching ${endpoint} for ${ticker}:`, {
@@ -52,6 +87,8 @@ export async function getCompanyData(ticker, endpoint = "companies") {
       message: error.message,
       status: error.response?.status,
       baseURL: api.defaults.baseURL,
+      url: url,
+      code: error.code,
     };
   }
 }
@@ -59,6 +96,7 @@ export async function getCompanyData(ticker, endpoint = "companies") {
 // Search companies
 export async function searchCompanies(query, limit = 20) {
   try {
+    // Use the FRC companies endpoint with search parameter
     const response = await api.get(
       `/api/frc/companies?search=${encodeURIComponent(query)}&limit=${limit}`
     );
@@ -72,7 +110,7 @@ export async function searchCompanies(query, limit = 20) {
 // Get database statistics
 export async function getStats() {
   try {
-    const response = await api.get("/api/frc/summary");
+    const response = await api.get("/api/frc/stats");
     return response.data;
   } catch (error) {
     console.error("Error fetching stats:", error);
