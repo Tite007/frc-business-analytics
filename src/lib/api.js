@@ -1,8 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL:
-    process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com",
+  baseURL: "", // Use relative URLs to leverage Next.js rewrites
 });
 
 // Enhanced API functions for the FRC backend
