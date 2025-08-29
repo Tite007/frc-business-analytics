@@ -37,6 +37,32 @@ export default function CompanyPage() {
           companyResponse.error ||
           (!companyResponse.success && companyResponse.status !== "success")
         ) {
+          // Check if this is a company with PDF reports only
+          if (
+            companyResponse?.status === 404 ||
+            companyResponse?.message?.includes("not found")
+          ) {
+            // Try to fetch basic company info from the companies list
+            try {
+              const companiesResponse = await getCompanyData(null, "companies");
+              const company = companiesResponse?.companies?.find(
+                (c) => c.ticker?.toUpperCase() === ticker
+              );
+
+              if (company) {
+                setError({
+                  isPdfOnly: true,
+                  company: company,
+                  message: "This company has PDF reports only",
+                });
+                setLoading(false);
+                return;
+              }
+            } catch (listError) {
+              console.error("Failed to fetch company list:", listError);
+            }
+          }
+
           // Log the error details for debugging
           console.error("Company data fetch failed:", {
             ticker,
@@ -110,7 +136,7 @@ export default function CompanyPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen  flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h2 className="text-xl font-semibold text-gray-700">
@@ -126,11 +152,91 @@ export default function CompanyPage() {
 
   // Error state
   if (error) {
+    // Special handling for PDF-only companies
+    if (error.isPdfOnly && error.company) {
+      return (
+        <div className="container mx-auto p-4">
+          <div className="mb-4">
+            <Link
+              href="/companies"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              ← Back to Companies
+            </Link>
+          </div>
+          <div className="text-center py-16">
+            <div className="text-amber-500 text-6xl mb-4">📄</div>
+            <h1 className="text-3xl font-bold text-amber-600 mb-4">
+              PDF Reports Available
+            </h1>
+            <div className="max-w-2xl mx-auto mb-8">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                {error.company.company_name} ({ticker})
+              </h2>
+              <div className="flex justify-center gap-4 mb-4">
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  {error.company.exchange}
+                </span>
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                  {error.company.currency}
+                </span>
+                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                  {error.company.industry}
+                </span>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-6 max-w-lg mx-auto">
+              This company is covered by FRC with PDF reports available. Digital
+              reports and interactive features are not yet available for this
+              company.
+            </p>
+
+            {error.company.has_chart && (
+              <div className="mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg">
+                  <span>📊</span>
+                  <span className="text-sm font-medium">
+                    Stock data available
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <p className="text-sm text-gray-500">
+                For access to PDF reports, please contact FRC directly.
+              </p>
+              <div className="flex justify-center gap-4">
+                <Link
+                  href="/companies"
+                  className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700"
+                >
+                  ← Back to Companies
+                </Link>
+                <button
+                  onClick={() =>
+                    window.open(
+                      "mailto:contact@researchfrc.com?subject=PDF Report Request for " +
+                        ticker,
+                      "_blank"
+                    )
+                  }
+                  className="bg-amber-600 text-white px-6 py-3 rounded hover:bg-amber-700"
+                >
+                  Request PDF Reports
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="container mx-auto p-4">
         <div className="mb-4">
           <Link
-            href="/"
+            href="/companies"
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             ← Back to Companies
@@ -167,7 +273,7 @@ export default function CompanyPage() {
             </div>
           )}
           <Link
-            href="/"
+            href="/companies"
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mt-4 inline-block"
           >
             ← Back to Companies
@@ -183,7 +289,7 @@ export default function CompanyPage() {
       <div className="container mx-auto p-4">
         <div className="mb-4">
           <Link
-            href="/"
+            href="/companies"
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             ← Back to Companies
@@ -203,12 +309,12 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen ">
+      <div className="xl:container mx-auto max-w-7xl ">
         {/* Back Navigation */}
         <div className="mb-8">
           <Link
-            href="/"
+            href="/companies"
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200 hover:bg-blue-50 px-3 py-2 rounded-lg"
           >
             ← Back to Companies
@@ -221,17 +327,18 @@ export default function CompanyPage() {
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="mb-8 lg:mb-0">
                 <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
-                  {companyData.company_data?.name ||
-                    companyData.company_name ||
+                  {companyData.company_name ||
+                    companyData.data?.company_profile?.name ||
+                    companyData.company_data?.name ||
                     ticker}{" "}
                   <span className="text-blue-200">({ticker})</span>
                 </h1>
                 <div className="flex flex-wrap items-center gap-4 mb-6">
                   <span className="px-5 py-3 bg-white bg-opacity-20 backdrop-blur-sm text-black rounded-full text-sm font-medium">
-                    {companyData.exchange || "N/A"}
+                    {companyData.exchange || companyData.data?.company_profile?.exchange || "N/A"}
                   </span>
                   <span className="px-5 py-3 bg-white bg-opacity-20 backdrop-blur-sm text-black rounded-full text-sm font-medium">
-                    {companyData.currency || "USD"}
+                    {companyData.currency || companyData.data?.company_profile?.currency || "USD"}
                   </span>
                   <span className="px-5 py-3 bg-emerald-500 text-white rounded-full text-sm font-bold">
                     ✓ FRC Covered
@@ -243,7 +350,8 @@ export default function CompanyPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-base">🏭 Industry</span>
                     <span className="text-base font-medium">
-                      {companyData.industry ||
+                      {companyData.data?.company_profile?.industry ||
+                        companyData.industry ||
                         companyData.company_data?.industry ||
                         "N/A"}
                     </span>
@@ -251,7 +359,8 @@ export default function CompanyPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-base">🏢 Sector</span>
                     <span className="text-base font-medium">
-                      {companyData.sector ||
+                      {companyData.data?.company_profile?.sector ||
+                        companyData.sector ||
                         companyData.company_data?.sector ||
                         "N/A"}
                     </span>
@@ -367,10 +476,10 @@ export default function CompanyPage() {
                 <ChartComponent
                   chartData={chartData}
                   ticker={ticker}
-                  companyName={companyData.company_name}
-                  exchange={companyData.exchange}
+                  companyName={companyData.company_name || companyData.data?.company_profile?.name || ticker}
+                  exchange={companyData.data?.company_profile?.exchange || companyData.exchange}
                   currency={
-                    companyData.company_profile?.currency ||
+                    companyData.data?.company_profile?.currency ||
                     companyData.currency ||
                     "CAD"
                   }
@@ -404,7 +513,7 @@ export default function CompanyPage() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto shadow-inner bg-gray-50 rounded-lg">
+              <div className="overflow-x-auto shadow-inner rounded-lg">
                 <table className="min-w-full border-collapse border border-gray-400">
                   <thead className="bg-gradient-to-r from-slate-800 to-slate-700 sticky top-0 z-10">
                     <tr className="border-b-2 border-slate-600">
@@ -498,9 +607,10 @@ export default function CompanyPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-400">
-                          {companyData.company_profile?.name ||
+                          {companyData.company_name ||
+                            companyData.data?.company_profile?.name ||
                             companyData.company_data?.name ||
-                            companyData.company_name}
+                            ticker}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-semibold border-r-2 border-gray-400">
                           {ticker}
@@ -581,7 +691,7 @@ export default function CompanyPage() {
                 metrics={metricsData || []}
                 ticker={ticker}
                 currency={
-                  companyData.company_profile?.currency ||
+                  companyData.data?.company_profile?.currency ||
                   companyData.currency ||
                   "CAD"
                 }

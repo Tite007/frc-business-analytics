@@ -55,17 +55,15 @@ export default function CompaniesPage() {
     async function fetchCompanies() {
       try {
         setLoading(true);
-        const response = await getCompanies();
+        // Fetch all companies with a high limit to ensure we get all 122
+        const response = await getCompanies({ limit: 200 });
         console.log("Fetched companies response:", response);
         if (response && response.companies) {
-          // Filter for FRC-covered companies
-          const frcCompanies = response.companies.filter(
-            (company) =>
-              company.status === "success" || company.data_quality?.has_reports
-          );
-          setCompanies(frcCompanies);
-          setFilteredCompanies(frcCompanies);
-          categorizeCompanies(frcCompanies);
+          // Show all FRC-covered companies (don't filter by status)
+          const allCompanies = response.companies;
+          setCompanies(allCompanies);
+          setFilteredCompanies(allCompanies);
+          categorizeCompanies(allCompanies);
         }
       } catch (err) {
         setError("Failed to load companies");
@@ -93,6 +91,8 @@ export default function CompaniesPage() {
     { name: "TICKER", uid: "ticker", sortable: true },
     { name: "EXCHANGE", uid: "exchange", sortable: true },
     { name: "CURRENCY", uid: "currency" },
+    { name: "STATUS", uid: "status" },
+    { name: "REPORT TYPE", uid: "report_type" },
     { name: "REPORTS", uid: "reports_count", sortable: true },
     { name: "ACTIONS", uid: "actions" },
   ];
@@ -128,24 +128,139 @@ export default function CompaniesPage() {
             {cellValue}
           </Chip>
         );
-      case "reports_count":
+      case "status":
+        const getStatusColor = (status) => {
+          switch (status) {
+            case "success":
+              return "success";
+            case "frc_covered_no_digital_reports":
+              return "warning";
+            case "frc_covered_no_stock_data":
+              return "secondary";
+            default:
+              return "default";
+          }
+        };
+
+        const getStatusText = (status) => {
+          switch (status) {
+            case "success":
+              return "Complete Data";
+            case "frc_covered_no_digital_reports":
+              return "No Digital Reports";
+            case "frc_covered_no_stock_data":
+              return "No Stock Data";
+            default:
+              return status;
+          }
+        };
+
         return (
-          <div className="flex flex-col">
-            <p className="text-bold text-sm">{cellValue || 0} reports</p>
-          </div>
+          <Chip
+            className="capitalize"
+            color={getStatusColor(cellValue)}
+            size="sm"
+            variant="flat"
+          >
+            {getStatusText(cellValue)}
+          </Chip>
         );
-      case "actions":
+      case "report_type":
+        const getReportType = (company) => {
+          if (company.status === "success") {
+            return { type: "Digital Reports", color: "success", icon: "💻" };
+          } else if (company.status === "frc_covered_no_digital_reports") {
+            return { type: "PDF Reports", color: "warning", icon: "📄" };
+          } else if (company.status === "frc_covered_no_stock_data") {
+            return { type: "Reports Only", color: "secondary", icon: "📊" };
+          } else {
+            return { type: "Unknown", color: "default", icon: "❓" };
+          }
+        };
+
+        const reportInfo = getReportType(company);
+
         return (
-          <div className="relative flex justify-end items-center gap-2">
-            <Button
-              as={Link}
-              href={`/${company.ticker}`}
-              color="primary"
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{reportInfo.icon}</span>
+            <Chip
+              className="capitalize"
+              color={reportInfo.color}
               size="sm"
               variant="flat"
             >
-              View Report
-            </Button>
+              {reportInfo.type}
+            </Chip>
+          </div>
+        );
+      case "reports_count":
+        const companyHasReports = cellValue > 0;
+        return (
+          <div className="flex flex-col">
+            <p
+              className={`text-bold text-sm ${
+                companyHasReports ? "text-green-600" : "text-gray-500"
+              }`}
+            >
+              {companyHasReports
+                ? `${cellValue} reports`
+                : "No reports available"}
+            </p>
+            {!companyHasReports && (
+              <p className="text-xs text-gray-400">
+                FRC covered, no digital reports
+              </p>
+            )}
+          </div>
+        );
+      case "actions":
+        const hasReports = company.reports_count > 0;
+        const hasDigitalReports = company.status === "success";
+        const hasPdfReports =
+          company.status === "frc_covered_no_digital_reports";
+        const hasStockData = company.status !== "frc_covered_no_stock_data";
+
+        return (
+          <div className="relative flex justify-end items-center gap-2">
+            {hasDigitalReports ? (
+              <Button
+                as={Link}
+                href={`/${company.ticker}`}
+                color="primary"
+                size="sm"
+                variant="flat"
+              >
+                View Digital Report
+              </Button>
+            ) : hasPdfReports ? (
+              <Button
+                color="warning"
+                size="sm"
+                variant="flat"
+                title="PDF reports available - Contact FRC for access"
+              >
+                PDF Reports Available
+              </Button>
+            ) : hasStockData ? (
+              <Button
+                color="secondary"
+                size="sm"
+                variant="flat"
+                title="Stock data available - Limited report access"
+              >
+                View Stock Data
+              </Button>
+            ) : (
+              <Button
+                color="default"
+                size="sm"
+                variant="flat"
+                isDisabled
+                title="No data available at this time"
+              >
+                No Data Available
+              </Button>
+            )}
           </div>
         );
       default:
@@ -285,8 +400,21 @@ export default function CompaniesPage() {
               <span className="font-semibold text-white">
                 {companies.length}
               </span>{" "}
-              FRC-covered companies. Access detailed reports, interactive
-              charts, and AI-powered analysis for each company.
+              FRC-covered companies. We offer{" "}
+              <span className="font-semibold text-white">
+                {companies.filter((c) => c.status === "success").length}{" "}
+                companies
+              </span>{" "}
+              with full digital reports and interactive charts, plus{" "}
+              <span className="font-semibold text-white">
+                {
+                  companies.filter(
+                    (c) => c.status === "frc_covered_no_digital_reports"
+                  ).length
+                }{" "}
+                additional companies
+              </span>{" "}
+              with PDF reports available through FRC.
             </p>
 
             {/* Quick Stats */}
@@ -301,23 +429,33 @@ export default function CompaniesPage() {
               </div>
               <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-30">
                 <div className="text-2xl font-bold text-black mb-1">
-                  {usCompanies.length}
+                  {companies.filter((c) => c.status === "success").length}
                 </div>
                 <div className="text-xs text-blue-400 font-medium">
-                  US Companies
+                  Digital Reports
                 </div>
               </div>
               <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-30">
                 <div className="text-2xl font-bold text-black mb-1">
-                  {canadianCompanies.length}
+                  {
+                    companies.filter(
+                      (c) => c.status === "frc_covered_no_digital_reports"
+                    ).length
+                  }
                 </div>
                 <div className="text-xs text-blue-400 font-medium">
-                  Canadian Companies
+                  PDF Reports
                 </div>
               </div>
               <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-30">
                 <div className="text-2xl font-bold text-black mb-1">
-                  {companies.filter((c) => c.reports_count > 0).length}
+                  {
+                    companies.filter(
+                      (c) =>
+                        c.reports_count > 0 ||
+                        c.status === "frc_covered_no_digital_reports"
+                    ).length
+                  }
                 </div>
                 <div className="text-xs text-blue-400 font-medium">
                   With Reports

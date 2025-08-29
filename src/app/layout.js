@@ -20,8 +20,8 @@ export default function RootLayout({ children }) {
             <div className="flex flex-col min-h-screen">
               <Navbar />
               <main className="flex-1">
-                {/* Mobile-first responsive container */}
-                <div className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 max-w-none sm:max-w-none md:max-w-none lg:max-w-7xl xl:max-w-7xl 2xl:max-w-8xl lg:container">
+                {/* Full-width mobile, contained on larger screens */}
+                <div className="w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 max-w-none lg:max-w-7xl xl:max-w-7xl 2xl:max-w-8xl">
                   {children}
                 </div>
               </main>

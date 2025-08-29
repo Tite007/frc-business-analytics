@@ -47,8 +47,8 @@ export async function getCompanyData(ticker, endpoint = "companies") {
     // Handle the response based on the endpoint
     if (endpoint === "company") {
       // The FRC company endpoint should return a single company object
-      if (response.data.success || response.data.data) {
-        const companyData = response.data.data || response.data;
+      if (response.data.success && response.data.company) {
+        const companyData = response.data.company;
         return {
           success: true,
           company: companyData,
