@@ -22,18 +22,24 @@
     "@heroui/theme": "^2.4.20",
     "@tanstack/react-query": "^5.85.5",
     "axios": "^1.10.0",
+    "bcryptjs": "^3.0.2",
     "framer-motion": "^11.18.2",
     "next": "15.4.1",
+    "next-auth": "^5.0.0-beta.29",
     "plotly.js": "^3.1.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-plotly.js": "^2.6.0",
-    "supports-color": "^10.2.0"
+    "supports-color": "^10.2.0",
+    "zod": "^4.1.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.12",
+    "@types/node": "24.3.0",
+    "@types/react": "19.1.12",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.12"
+    "tailwindcss": "^4.1.12",
+    "typescript": "5.9.2"
   }
 }
