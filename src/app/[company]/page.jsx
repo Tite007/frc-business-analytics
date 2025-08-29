@@ -335,10 +335,14 @@ export default function CompanyPage() {
                 </h1>
                 <div className="flex flex-wrap items-center gap-4 mb-6">
                   <span className="px-5 py-3 bg-white bg-opacity-20 backdrop-blur-sm text-black rounded-full text-sm font-medium">
-                    {companyData.exchange || companyData.data?.company_profile?.exchange || "N/A"}
+                    {companyData.exchange ||
+                      companyData.data?.company_profile?.exchange ||
+                      "N/A"}
                   </span>
                   <span className="px-5 py-3 bg-white bg-opacity-20 backdrop-blur-sm text-black rounded-full text-sm font-medium">
-                    {companyData.currency || companyData.data?.company_profile?.currency || "USD"}
+                    {companyData.currency ||
+                      companyData.data?.company_profile?.currency ||
+                      "USD"}
                   </span>
                   <span className="px-5 py-3 bg-emerald-500 text-white rounded-full text-sm font-bold">
                     ✓ FRC Covered
@@ -476,8 +480,15 @@ export default function CompanyPage() {
                 <ChartComponent
                   chartData={chartData}
                   ticker={ticker}
-                  companyName={companyData.company_name || companyData.data?.company_profile?.name || ticker}
-                  exchange={companyData.data?.company_profile?.exchange || companyData.exchange}
+                  companyName={
+                    companyData.company_name ||
+                    companyData.data?.company_profile?.name ||
+                    ticker
+                  }
+                  exchange={
+                    companyData.data?.company_profile?.exchange ||
+                    companyData.exchange
+                  }
                   currency={
                     companyData.data?.company_profile?.currency ||
                     companyData.currency ||
