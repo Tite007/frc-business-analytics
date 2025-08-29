@@ -162,7 +162,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center">
           <p className="text-blue-200 text-sm">
-            © 2024 FRC Research. All rights reserved.
+            © 2025 FRC Research. All rights reserved.
           </p>
         </div>
       </div>

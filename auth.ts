@@ -56,18 +56,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   pages: {
     signIn: "/login",
+    error: "/unauthorized",
   },
   callbacks: {
     authorized: async ({ auth, request: { nextUrl } }) => {
       const isLoggedIn = !!auth;
       const isOnLoginPage = nextUrl.pathname.startsWith("/login");
+      const isOnUnauthorizedPage = nextUrl.pathname.startsWith("/unauthorized");
 
       if (isOnLoginPage) {
         if (isLoggedIn) return Response.redirect(new URL("/", nextUrl));
         return true;
       }
 
-      return isLoggedIn;
+      if (isOnUnauthorizedPage) {
+        return true; // Allow access to unauthorized page
+      }
+
+      if (!isLoggedIn) {
+        return Response.redirect(new URL("/unauthorized", nextUrl));
+      }
+
+      return true;
     },
   },
   session: {

@@ -25,18 +25,6 @@ export default function CompaniesPage() {
   const [usCompanies, setUsCompanies] = useState([]);
   const [canadianCompanies, setCanadianCompanies] = useState([]);
 
-  // Show loading while session is being loaded
-  if (status === "loading") {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Function to categorize and sort companies
   const categorizeCompanies = (companiesData) => {
     const us = [];
@@ -232,6 +220,18 @@ export default function CompaniesPage() {
       </div>
     );
   };
+
+  // Show loading while session is being loaded
+  if (status === "loading") {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
