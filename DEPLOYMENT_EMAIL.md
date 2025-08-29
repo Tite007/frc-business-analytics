@@ -9,6 +9,7 @@ Hi [Boss Name],
 **Status:** Frontend application is complete and ready for production deployment.
 
 **What's Done:**
+
 - ✅ Company listings page with search functionality
 - ✅ Individual company profile pages with charts and analysis
 - ✅ Integration with FRC backend API (122 companies available)
@@ -16,6 +17,7 @@ Hi [Boss Name],
 - ✅ Error handling and loading states
 
 **Deployment Process:**
+
 1. Build production files (5 minutes)
 2. Upload to hosting platform
 3. Configure domain/SSL
@@ -23,7 +25,8 @@ Hi [Boss Name],
 
 **Timeline:** Can be deployed within 1 business day once hosting details are confirmed.
 
-**Next Steps:** 
+**Next Steps:**
+
 - Confirm hosting platform preference (Vercel, Netlify, or AWS)
 - Provide domain name if different from current
 
@@ -34,4 +37,4 @@ Best regards,
 
 ---
 
-*Note: This email template is designed to be brief, non-technical, and action-oriented for busy executives.*
+_Note: This email template is designed to be brief, non-technical, and action-oriented for busy executives._

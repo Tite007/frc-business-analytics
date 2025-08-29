@@ -4,10 +4,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/frc/:path*',
-        destination: 'https://dashboard.researchfrc.com/api/frc/:path*',
+        source: "/api/frc/:path*",
+        destination: "https://dashboard.researchfrc.com/api/frc/:path*",
       },
-    ]
+    ];
   },
 };
 
