@@ -1,7 +1,7 @@
-/** @type {import('tailwindcss').Config} */
-const { heroui } = require("@heroui/theme");
+import { heroui } from "@heroui/theme";
 
-module.exports = {
+/** @type {import('tailwindcss').Config} */
+export default {
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx}",
     "./src/components/**/*.{js,ts,jsx,tsx}",
@@ -12,6 +12,8 @@ module.exports = {
     "./node_modules/@heroui/table/dist/**/*.{js,ts,jsx,tsx}",
     "./node_modules/@heroui/chip/dist/**/*.{js,ts,jsx,tsx}",
     "./node_modules/@heroui/button/dist/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@heroui/dropdown/dist/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@heroui/avatar/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
