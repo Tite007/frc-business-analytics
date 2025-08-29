@@ -14,14 +14,14 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
-      <body className="lg:container mx-auto min-h-screen  ">
+      <body className="min-h-screen">
         <AuthProvider>
           <HeroUIProvider>
             <div className="flex flex-col min-h-screen">
               <Navbar />
               <main className="flex-1">
                 {/* Mobile-first responsive container */}
-                <div className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 max-w-none sm:max-w-none md:max-w-none lg:max-w-7xl xl:max-w-7xl 2xl:max-w-8xl">
+                <div className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 max-w-none sm:max-w-none md:max-w-none lg:max-w-7xl xl:max-w-7xl 2xl:max-w-8xl lg:container">
                   {children}
                 </div>
               </main>
