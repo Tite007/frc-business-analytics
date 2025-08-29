@@ -17,12 +17,12 @@ const InteractiveNavbar = () => {
     <Navbar className="bg-[#1A2C45]">
       {/* Brand */}
       <NavbarBrand>
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center">
           <Image
             alt="Fundamental Research Corp. Logo"
             src="/FRC_Logo_FullWhite.png"
-            width={160}
-            height={45}
+            width={100}
+            height={32}
             priority={true}
             className="object-contain"
           />
@@ -30,25 +30,10 @@ const InteractiveNavbar = () => {
       </NavbarBrand>
 
       {/* Navigation Links */}
-      <NavbarContent className="hidden sm:flex gap-4" justify="center">
+      <NavbarContent className="hidden sm:flex" justify="center">
         <NavbarItem>
           <Link color="foreground" href="/" className="text-white">
             Home
-          </Link>
-        </NavbarItem>
-        <NavbarItem isActive>
-          <Link aria-current="page" color="secondary" href="/companies">
-            Companies
-          </Link>
-        </NavbarItem>
-        <NavbarItem>
-          <Link color="foreground" href="/analysis" className="text-white">
-            Analysis
-          </Link>
-        </NavbarItem>
-        <NavbarItem>
-          <Link color="foreground" href="/reports" className="text-white">
-            Reports
           </Link>
         </NavbarItem>
       </NavbarContent>
