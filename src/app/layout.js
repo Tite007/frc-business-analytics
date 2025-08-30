@@ -1,6 +1,7 @@
 import "./globals.css";
-import AuthProvider from "@/components/AuthProvider";
-import Navbar from "@/components/navbar/AuthNavbar";
+import { AuthProvider } from "@/components/AuthContext";
+import ConditionalNavbar from "@/components/navbar/ConditionalNavbar";
+import ConditionalMain from "@/components/ConditionalMain";
 import { HeroUIProvider } from "@heroui/system";
 
 export const metadata = {
@@ -18,13 +19,8 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <HeroUIProvider>
             <div className="flex flex-col min-h-screen">
-              <Navbar />
-              <main className="flex-1">
-                {/* Full-width mobile, contained on larger screens */}
-                <div className="w-full mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 max-w-none lg:max-w-7xl xl:max-w-7xl 2xl:max-w-8xl">
-                  {children}
-                </div>
-              </main>
+              <ConditionalNavbar />
+              <ConditionalMain>{children}</ConditionalMain>
             </div>
           </HeroUIProvider>
         </AuthProvider>

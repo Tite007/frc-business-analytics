@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.7",
+    "@heroicons/react": "^2.2.0",
     "@heroui/avatar": "^2.2.20",
     "@heroui/button": "^2.2.24",
     "@heroui/chip": "^2.2.20",
@@ -23,6 +25,7 @@
     "@tanstack/react-query": "^5.85.5",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
+    "date-fns": "^4.1.0",
     "framer-motion": "^11.18.2",
     "next": "15.4.1",
     "next-auth": "^5.0.0-beta.29",

@@ -147,3 +147,74 @@ export async function getCompanies(filters = {}) {
     return null;
   }
 }
+
+// User Management API Functions
+export async function getUsers() {
+  try {
+    const response = await api.get("/api/auth/users");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return { error: true, message: error.message };
+  }
+}
+
+export async function getUser(userId) {
+  try {
+    const response = await api.get(`/api/auth/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return { error: true, message: error.message };
+  }
+}
+
+export async function createUser(userData) {
+  try {
+    const response = await api.post("/api/auth/users", userData);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return { error: true, message: error.message };
+  }
+}
+
+export async function updateUser(userId, userData) {
+  try {
+    const response = await api.put(`/api/auth/users/${userId}`, userData);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return { error: true, message: error.message };
+  }
+}
+
+export async function deleteUser(userId) {
+  try {
+    const response = await api.delete(`/api/auth/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return { error: true, message: error.message };
+  }
+}
+
+export async function loginUser(credentials) {
+  try {
+    const response = await api.post("/api/auth/login", credentials);
+    return response.data;
+  } catch (error) {
+    console.error("Error logging in:", error);
+    return { error: true, message: error.message };
+  }
+}
+
+export async function getCurrentUser() {
+  try {
+    const response = await api.get("/api/auth/me");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching current user:", error);
+    return { error: true, message: error.message };
+  }
+}

@@ -3,14 +3,14 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSession, signOut } from "next-auth/react";
+import { useAuth } from "@/components/AuthContext";
 
 const Navbar = () => {
-  const { data: session } = useSession();
+  const { user, logout, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/login" });
+    await logout();
   };
 
   return (
@@ -59,16 +59,45 @@ const Navbar = () => {
             >
               REPORTS
             </Link>
+            {/* CMS Link - Only show for admin users */}
+            {user?.role === "admin" && (
+              <Link
+                href="/cms"
+                className="bg-frc-blue hover:bg-frc-blue-hover text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <span>ADMIN</span>
+              </Link>
+            )}
           </div>
 
           {/* Right Section: Authentication */}
           <div className="flex items-center space-x-4">
-            {session ? (
+            {isAuthenticated && user ? (
               // Authenticated user menu
               <div className="flex items-center space-x-4">
-                <span className="hidden sm:block text-white text-sm">
-                  Welcome, {session.user?.name || session.user?.email}
-                </span>
+                <div className="hidden sm:block text-white text-sm">
+                  <span>Welcome, {user.name}</span>
+                  <span className="text-blue-300 ml-2">({user.role})</span>
+                </div>
                 <button
                   onClick={handleSignOut}
                   className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap"
@@ -148,8 +177,37 @@ const Navbar = () => {
               >
                 REPORTS
               </Link>
+              {/* CMS Link for mobile - Only show for admin users */}
+              {user?.role === "admin" && (
+                <Link
+                  href="/cms"
+                  className="bg-frc-blue hover:bg-frc-blue-hover text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <span>ADMIN PANEL</span>
+                </Link>
+              )}
 
-              {session ? (
+              {isAuthenticated && user ? (
                 <button
                   onClick={handleSignOut}
                   className="text-left text-white hover:text-blue-300 transition-colors duration-200 font-medium py-2"

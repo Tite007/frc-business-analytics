@@ -23,6 +23,20 @@ export default function CompanyPage() {
   useEffect(() => {
     if (!ticker) return;
 
+    // Handle CMS route confusion
+    if (ticker === "CMS") {
+      setError({
+        isCMSRedirect: true,
+        message: "CMS is not a valid company ticker. Redirecting to CMS...",
+      });
+      setLoading(false);
+      // Redirect to CMS after a short delay
+      setTimeout(() => {
+        window.location.href = "/cms";
+      }, 2000);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -152,6 +166,35 @@ export default function CompanyPage() {
 
   // Error state
   if (error) {
+    // Special handling for CMS redirect
+    if (error.isCMSRedirect) {
+      return (
+        <div className="container mx-auto p-4">
+          <div className="text-center py-16">
+            <div className="text-blue-500 text-6xl mb-4">🔄</div>
+            <h1 className="text-3xl font-bold text-blue-600 mb-4">
+              Redirecting to CMS
+            </h1>
+            <p className="text-gray-600 mb-4">{error.message}</p>
+            <div className="flex justify-center gap-4">
+              <Link
+                href="/cms"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+              >
+                Go to CMS Now
+              </Link>
+              <Link
+                href="/companies"
+                className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700"
+              >
+                Browse Companies
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // Special handling for PDF-only companies
     if (error.isPdfOnly && error.company) {
       return (
@@ -644,13 +687,14 @@ export default function CompanyPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm border-r-2 border-gray-400">
                           <span
                             className={`font-semibold ${
-                              report["Volume Change 30 Days (%)"] > 0
+                              report["Volume Change 30 Days (%)"] >= 0
                                 ? "text-green-600"
-                                : report["Volume Change 30 Days (%)"] < 0
-                                ? "text-red-600"
-                                : "text-gray-600"
+                                : "text-red-600"
                             }`}
                           >
+                            {report["Volume Change 30 Days (%)"] >= 0
+                              ? "+"
+                              : ""}
                             {report["Volume Change 30 Days (%)"]?.toFixed(2) ||
                               "0.00"}
                             %
@@ -659,14 +703,14 @@ export default function CompanyPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span
                             className={`font-semibold ${
-                              report["Volume Change Pre-Post 30 Days (%)"] > 0
+                              report["Volume Change Pre-Post 30 Days (%)"] >= 0
                                 ? "text-green-600"
-                                : report["Volume Change Pre-Post 30 Days (%)"] <
-                                  0
-                                ? "text-red-600"
-                                : "text-gray-600"
+                                : "text-red-600"
                             }`}
                           >
+                            {report["Volume Change Pre-Post 30 Days (%)"] >= 0
+                              ? "+"
+                              : ""}
                             {report[
                               "Volume Change Pre-Post 30 Days (%)"
                             ]?.toFixed(2) || "0.00"}

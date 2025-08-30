@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/AuthContext";
 import { getCompanies } from "@/lib/api";
 import Link from "next/link";
 import { Tabs, Tab } from "@heroui/tabs";
@@ -16,7 +16,7 @@ import { Chip } from "@heroui/chip";
 import { Button } from "@heroui/button";
 
 export default function CompaniesPage() {
-  const { data: session, status } = useSession();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [filteredCompanies, setFilteredCompanies] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -336,13 +336,35 @@ export default function CompaniesPage() {
     );
   };
 
-  // Show loading while session is being loaded
-  if (status === "loading") {
+  // Show loading while auth is being loaded
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-4">
+            Authentication Required
+          </h2>
+          <p className="text-gray-500 mb-6">
+            Please log in to access this page.
+          </p>
+          <a
+            href="/login"
+            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Go to Login
+          </a>
         </div>
       </div>
     );
@@ -377,12 +399,12 @@ export default function CompaniesPage() {
         <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
           <div className="text-center max-w-4xl mx-auto">
             {/* Welcome Message */}
-            {session && (
+            {user && (
               <div className="mb-4 sm:mb-6">
                 <p className="text-sm sm:text-base md:text-lg text-blue-200">
                   Welcome back,{" "}
                   <span className="font-semibold text-white">
-                    {session.user?.name || session.user?.email}
+                    {user.name || user.email}
                   </span>
                   !
                 </p>

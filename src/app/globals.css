@@ -1,2 +1,31 @@
 @import "tailwindcss";
 @config "../../hero.ts";
+
+/* Custom utility classes for FRC branding */
+.bg-frc-blue {
+  background-color: #1b51ca;
+}
+
+.bg-frc-blue-light {
+  background-color: #e0ebff;
+}
+
+.bg-frc-blue-hover:hover {
+  background-color: #1643c0;
+}
+
+.text-frc-blue {
+  color: #1b51ca;
+}
+
+.border-frc-blue {
+  border-color: #1b51ca;
+}
+
+.ring-frc-blue {
+  --tw-ring-color: #1b51ca;
+}
+
+.focus\:ring-frc-blue:focus {
+  --tw-ring-color: #1b51ca;
+}

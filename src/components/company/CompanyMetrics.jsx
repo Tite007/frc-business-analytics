@@ -110,7 +110,11 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                 </div>
               </div>
               <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
-                <div className="text-2xl font-bold text-orange-800">
+                <div
+                  className={`text-2xl font-bold ${
+                    avgVolumeChange >= 0 ? "text-green-800" : "text-red-800"
+                  }`}
+                >
                   {avgVolumeChange >= 0 ? "+" : ""}
                   {avgVolumeChange.toFixed(1)}%
                 </div>
@@ -181,8 +185,8 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                             (report["Volume Change 30 Days (%)"] || 0) >= 0
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-orange-100 text-orange-800"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
                           }`}
                         >
                           {(report["Volume Change 30 Days (%)"] || 0) >= 0
@@ -404,8 +408,8 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                             <span
                               className={`inline-flex items-center px-2 py-1 rounded text-sm font-medium ${
                                 (report["Volume Change 30 Days (%)"] || 0) >= 0
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-orange-100 text-orange-800"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
                               }`}
                             >
                               {(report["Volume Change 30 Days (%)"] || 0) >= 0
