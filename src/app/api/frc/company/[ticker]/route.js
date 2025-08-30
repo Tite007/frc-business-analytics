@@ -38,9 +38,9 @@ export async function GET(request, { params }) {
         status: 404,
         redirect: "/cms",
       },
-      { 
+      {
         status: 404,
-        headers: getCorsHeaders()
+        headers: getCorsHeaders(),
       }
     );
   }
@@ -66,7 +66,7 @@ export async function GET(request, { params }) {
 
     const data = await response.json();
     return NextResponse.json(data, {
-      headers: getCorsHeaders()
+      headers: getCorsHeaders(),
     });
   } catch (error) {
     console.error(`Error proxying company ${upperTicker} to backend:`, error);
@@ -81,9 +81,9 @@ export async function GET(request, { params }) {
         backend_url: BACKEND_URL,
         details: error.message,
       },
-      { 
+      {
         status: 404,
-        headers: getCorsHeaders()
+        headers: getCorsHeaders(),
       }
     );
   }

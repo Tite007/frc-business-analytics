@@ -49,16 +49,16 @@ export async function PUT(request) {
           success: false,
           message: errorData.message || "Profile update failed",
         },
-        { 
+        {
           status: response.status,
-          headers: getCorsHeaders()
+          headers: getCorsHeaders(),
         }
       );
     }
 
     const data = await response.json();
     return NextResponse.json(data, {
-      headers: getCorsHeaders()
+      headers: getCorsHeaders(),
     });
   } catch (error) {
     console.error("Error proxying profile update to backend:", error);
@@ -70,9 +70,9 @@ export async function PUT(request) {
         message: error.message,
         backend_url: BACKEND_URL,
       },
-      { 
+      {
         status: 503,
-        headers: getCorsHeaders()
+        headers: getCorsHeaders(),
       }
     );
   }

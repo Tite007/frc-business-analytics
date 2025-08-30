@@ -47,16 +47,16 @@ export async function POST(request) {
           success: false,
           message: errorData.message || "Logout failed",
         },
-        { 
+        {
           status: response.status,
-          headers: getCorsHeaders()
+          headers: getCorsHeaders(),
         }
       );
     }
 
     const data = await response.json();
     return NextResponse.json(data, {
-      headers: getCorsHeaders()
+      headers: getCorsHeaders(),
     });
   } catch (error) {
     console.error("Error proxying logout to backend:", error);
@@ -68,9 +68,9 @@ export async function POST(request) {
         message: error.message,
         backend_url: BACKEND_URL,
       },
-      { 
+      {
         status: 503,
-        headers: getCorsHeaders()
+        headers: getCorsHeaders(),
       }
     );
   }

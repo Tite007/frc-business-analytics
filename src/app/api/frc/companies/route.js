@@ -53,7 +53,7 @@ export async function GET(request) {
 
     const data = await response.json();
     return NextResponse.json(data, {
-      headers: getCorsHeaders()
+      headers: getCorsHeaders(),
     });
   } catch (error) {
     console.error("Error proxying to backend:", error);
@@ -66,9 +66,9 @@ export async function GET(request) {
         message: error.message,
         backend_url: BACKEND_URL,
       },
-      { 
+      {
         status: 503,
-        headers: getCorsHeaders()
+        headers: getCorsHeaders(),
       }
     );
   }

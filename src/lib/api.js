@@ -1,7 +1,9 @@
 import axios from "axios";
 
+// Use the backend URL directly since CORS is fixed on the backend
 const api = axios.create({
-  baseURL: "", // Use relative URLs to leverage Next.js rewrites
+  baseURL:
+    process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com",
 });
 
 // Enhanced API functions for the FRC backend
