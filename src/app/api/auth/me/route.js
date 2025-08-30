@@ -1,8 +1,27 @@
 // Proxy current user endpoint - connects to real FRC backend
 import { NextResponse } from "next/server";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+// Normalize the backend URL by removing trailing slash
+const BACKEND_URL = (
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+).replace(/\/$/, "");
+
+// Helper function to create CORS headers
+function getCorsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
+
+// OPTIONS handler for preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: getCorsHeaders(),
+  });
+}
 
 // GET /api/auth/me - Get current user via real backend
 export async function GET(request) {
@@ -28,12 +47,17 @@ export async function GET(request) {
           success: false,
           message: errorData.message || "Authentication failed",
         },
-        { status: response.status }
+        { 
+          status: response.status,
+          headers: getCorsHeaders()
+        }
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: getCorsHeaders()
+    });
   } catch (error) {
     console.error("Error proxying get current user to backend:", error);
 
@@ -44,7 +68,10 @@ export async function GET(request) {
         message: error.message,
         backend_url: BACKEND_URL,
       },
-      { status: 503 }
+      { 
+        status: 503,
+        headers: getCorsHeaders()
+      }
     );
   }
 }

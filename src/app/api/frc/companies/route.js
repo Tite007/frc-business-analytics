@@ -1,8 +1,10 @@
 // Proxy API route for companies - connects to real FRC backend
 import { NextResponse } from "next/server";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+// Normalize the backend URL by removing trailing slash
+const BACKEND_URL = (
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+).replace(/\/$/, "");
 
 // Helper function to create CORS headers
 function getCorsHeaders() {
