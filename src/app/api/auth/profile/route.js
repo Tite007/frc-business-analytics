@@ -1,4 +1,4 @@
-// Proxy API route for companies - connects to real FRC backend
+// Proxy profile endpoint - connects to real FRC backend
 import { NextResponse } from "next/server";
 
 const BACKEND_URL =
@@ -21,21 +21,15 @@ export async function OPTIONS() {
   });
 }
 
-// GET /api/frc/companies - Get all companies from real backend
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-
-  // Forward all search parameters to the backend
-  const backendUrl = new URL("/api/frc/companies", BACKEND_URL);
-  searchParams.forEach((value, key) => {
-    backendUrl.searchParams.append(key, value);
-  });
-
+// PUT /api/auth/profile - Update profile endpoint via real backend
+export async function PUT(request) {
   try {
-    console.log(`Proxying request to: ${backendUrl.toString()}`);
+    const profileData = await request.json();
+    const backendUrl = `${BACKEND_URL}/api/auth/profile`;
+    console.log(`Proxying profile update request to: ${backendUrl}`);
 
     const response = await fetch(backendUrl, {
-      method: "GET",
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
         // Forward authorization header if present
@@ -43,10 +37,21 @@ export async function GET(request) {
           Authorization: request.headers.get("authorization"),
         }),
       },
+      body: JSON.stringify(profileData),
     });
 
     if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        {
+          success: false,
+          message: errorData.message || "Profile update failed",
+        },
+        { 
+          status: response.status,
+          headers: getCorsHeaders()
+        }
+      );
     }
 
     const data = await response.json();
@@ -54,9 +59,8 @@ export async function GET(request) {
       headers: getCorsHeaders()
     });
   } catch (error) {
-    console.error("Error proxying to backend:", error);
+    console.error("Error proxying profile update to backend:", error);
 
-    // Return error response
     return NextResponse.json(
       {
         success: false,

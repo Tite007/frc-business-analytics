@@ -19,12 +19,8 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
 
-  // Environment variables
-  const BACKEND_URL =
-    process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  const API_BASE_URL = `${
-    BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL
-  }/api/auth`;
+  // Use relative URLs to call our own API routes (which act as proxies)
+  const API_BASE_URL = "/api/auth";
 
   useEffect(() => {
     // Check for existing session on mount

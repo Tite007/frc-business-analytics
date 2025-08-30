@@ -1,4 +1,4 @@
-// Proxy API route for companies - connects to real FRC backend
+// Proxy logout endpoint - connects to real FRC backend
 import { NextResponse } from "next/server";
 
 const BACKEND_URL =
@@ -21,21 +21,14 @@ export async function OPTIONS() {
   });
 }
 
-// GET /api/frc/companies - Get all companies from real backend
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-
-  // Forward all search parameters to the backend
-  const backendUrl = new URL("/api/frc/companies", BACKEND_URL);
-  searchParams.forEach((value, key) => {
-    backendUrl.searchParams.append(key, value);
-  });
-
+// POST /api/auth/logout - Logout endpoint via real backend
+export async function POST(request) {
   try {
-    console.log(`Proxying request to: ${backendUrl.toString()}`);
+    const backendUrl = `${BACKEND_URL}/api/auth/logout`;
+    console.log(`Proxying logout request to: ${backendUrl}`);
 
     const response = await fetch(backendUrl, {
-      method: "GET",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         // Forward authorization header if present
@@ -46,7 +39,17 @@ export async function GET(request) {
     });
 
     if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        {
+          success: false,
+          message: errorData.message || "Logout failed",
+        },
+        { 
+          status: response.status,
+          headers: getCorsHeaders()
+        }
+      );
     }
 
     const data = await response.json();
@@ -54,9 +57,8 @@ export async function GET(request) {
       headers: getCorsHeaders()
     });
   } catch (error) {
-    console.error("Error proxying to backend:", error);
+    console.error("Error proxying logout to backend:", error);
 
-    // Return error response
     return NextResponse.json(
       {
         success: false,

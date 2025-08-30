@@ -4,6 +4,23 @@ import { NextResponse } from "next/server";
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
+// Helper function to create CORS headers
+function getCorsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
+
+// OPTIONS handler for preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: getCorsHeaders(),
+  });
+}
+
 // GET /api/frc/company/[ticker] - Get specific company from real backend
 export async function GET(request, { params }) {
   const { ticker } = params;
@@ -19,7 +36,10 @@ export async function GET(request, { params }) {
         status: 404,
         redirect: "/cms",
       },
-      { status: 404 }
+      { 
+        status: 404,
+        headers: getCorsHeaders()
+      }
     );
   }
 
@@ -43,7 +63,9 @@ export async function GET(request, { params }) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: getCorsHeaders()
+    });
   } catch (error) {
     console.error(`Error proxying company ${upperTicker} to backend:`, error);
 
@@ -57,7 +79,10 @@ export async function GET(request, { params }) {
         backend_url: BACKEND_URL,
         details: error.message,
       },
-      { status: 404 }
+      { 
+        status: 404,
+        headers: getCorsHeaders()
+      }
     );
   }
 }

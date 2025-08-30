@@ -71,12 +71,17 @@ export async function GET(request) {
           success: false,
           message: errorData.message || "Authentication failed",
         },
-        { status: response.status }
+        { 
+          status: response.status,
+          headers: getCorsHeaders()
+        }
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: getCorsHeaders()
+    });
   } catch (error) {
     console.error("Error proxying get current user to backend:", error);
 
@@ -87,7 +92,10 @@ export async function GET(request) {
         message: error.message,
         backend_url: BACKEND_URL,
       },
-      { status: 503 }
+      { 
+        status: 503,
+        headers: getCorsHeaders()
+      }
     );
   }
 }
