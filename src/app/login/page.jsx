@@ -17,7 +17,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get("callbackUrl") || "/";
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated  --  
   useEffect(() => {
     if (isAuthenticated && user) {
       // If admin trying to access CMS, allow it
