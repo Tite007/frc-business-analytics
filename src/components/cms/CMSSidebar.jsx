@@ -9,6 +9,7 @@ import {
   BuildingOfficeIcon,
   ChartPieIcon,
   BellIcon,
+  FolderIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,6 +18,7 @@ import { motion } from "framer-motion";
 const navigation = [
   { name: "Dashboard", href: "/cms", icon: ChartBarIcon },
   { name: "Users", href: "/cms/users", icon: UsersIcon },
+  { name: "Content", href: "/cms/content", icon: FolderIcon },
   { name: "Companies", href: "/cms/companies", icon: BuildingOfficeIcon },
   { name: "Reports", href: "/cms/reports", icon: DocumentTextIcon },
   { name: "Analytics", href: "/cms/analytics", icon: ChartPieIcon },
