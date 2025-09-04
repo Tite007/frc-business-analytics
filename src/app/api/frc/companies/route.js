@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 // Normalize the backend URL by removing trailing slash
 const BACKEND_URL = (
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+  process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com"
 ).replace(/\/$/, "");
 
 // Helper function to create CORS headers

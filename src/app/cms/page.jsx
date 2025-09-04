@@ -17,7 +17,7 @@ import {
 import Link from "next/link";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com";
 
 // Helper function to safely join URLs
 const joinUrl = (base, path) => {
