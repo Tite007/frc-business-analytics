@@ -2,28 +2,34 @@
 
 import { useState } from "react";
 import { DynamicFinancialReport } from "@/components/DynamicFinancialReport";
-import { sampleReportData, createEmptyReportData } from "@/lib/financialReportData";
-import { generateFinancialReportHTML, generatePDFOptimizedHTML } from "@/lib/reportHTMLGenerator";
+import {
+  sampleReportData,
+  createEmptyReportData,
+} from "@/lib/financialReportData";
+import {
+  generateFinancialReportHTML,
+  generatePDFOptimizedHTML,
+} from "@/lib/reportHTMLGenerator";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function FinancialReportDemo() {
   const [currentReportData, setCurrentReportData] = useState(sampleReportData);
   const [generatedHTML, setGeneratedHTML] = useState("");
-  const [currentView, setCurrentView] = useState("preview"); // preview, data, html, usage
 
   // Handle PDF export
   const handleExportPDF = async (data, paperSize) => {
     try {
       // Generate HTML for PDF
       const htmlContent = generatePDFOptimizedHTML(data, paperSize);
-      
+
       // Here you would typically send this to a PDF generation service
       // For demo purposes, we'll just open the HTML in a new window
       const newWindow = window.open();
       newWindow.document.write(htmlContent);
       newWindow.document.close();
-      
+
       console.log("PDF export initiated with data:", data);
       console.log("Paper size:", paperSize);
     } catch (error) {
@@ -36,24 +42,24 @@ export default function FinancialReportDemo() {
     try {
       // Generate print-optimized HTML
       const htmlContent = generateFinancialReportHTML(data, paperSize);
-      
+
       // Create a temporary iframe for printing
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
       document.body.appendChild(iframe);
-      
+
       const doc = iframe.contentDocument || iframe.contentWindow.document;
       doc.write(htmlContent);
       doc.close();
-      
+
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
-      
+
       // Clean up
       setTimeout(() => {
         document.body.removeChild(iframe);
       }, 1000);
-      
+
       console.log("Print initiated with data:", data);
     } catch (error) {
       console.error("Error printing:", error);
@@ -80,45 +86,24 @@ export default function FinancialReportDemo() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Financial Report System Demo</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            Financial Report System Demo
+          </h1>
           <p className="text-muted-foreground">
-            This demo shows how to use the dynamic financial report component with different data sources.
+            This demo shows how to use the dynamic financial report component
+            with different data sources.
           </p>
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              onClick={() => setCurrentView("preview")} 
-              variant={currentView === "preview" ? "default" : "outline"}
-            >
-              Live Preview
-            </Button>
-            <Button 
-              onClick={() => setCurrentView("data")} 
-              variant={currentView === "data" ? "default" : "outline"}
-            >
-              Data Structure
-            </Button>
-            <Button 
-              onClick={() => setCurrentView("html")} 
-              variant={currentView === "html" ? "default" : "outline"}
-            >
-              Generated HTML
-            </Button>
-            <Button 
-              onClick={() => setCurrentView("usage")} 
-              variant={currentView === "usage" ? "default" : "outline"}
-            >
-              Usage Guide
-            </Button>
-          </div>
-        </div>
+        <Tabs defaultValue="preview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="preview">Live Preview</TabsTrigger>
+            <TabsTrigger value="data">Data Structure</TabsTrigger>
+            <TabsTrigger value="html">Generated HTML</TabsTrigger>
+            <TabsTrigger value="usage">Usage Guide</TabsTrigger>
+          </TabsList>
 
-        {/* Content based on current view */}
-        {currentView === "preview" && (
-          <div className="space-y-4">
+          <TabsContent value="preview" className="space-y-4">
             <div className="flex gap-4 mb-4">
               <Button onClick={loadSampleData} variant="outline">
                 Load Sample Data
@@ -127,52 +112,55 @@ export default function FinancialReportDemo() {
                 Create New Report
               </Button>
             </div>
-            
+
             <DynamicFinancialReport
               reportData={currentReportData}
               onExportPDF={handleExportPDF}
               onPrint={handlePrint}
             />
-          </div>
-        )}
+          </TabsContent>
 
-        {currentView === "data" && (
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Current Report Data Structure</h3>
-            <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm max-h-96">
-              {JSON.stringify(currentReportData, null, 2)}
-            </pre>
-          </Card>
-        )}
+          <TabsContent value="data" className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                Current Report Data Structure
+              </h3>
+              <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm">
+                {JSON.stringify(currentReportData, null, 2)}
+              </pre>
+            </Card>
+          </TabsContent>
 
-        {currentView === "html" && (
-          <div className="space-y-4">
+          <TabsContent value="html" className="space-y-4">
             <div className="flex gap-4 mb-4">
               <Button onClick={generateHTMLPreview}>
                 Generate HTML Preview
               </Button>
             </div>
-            
+
             {generatedHTML && (
               <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Generated HTML for PDF Export</h3>
+                <h3 className="text-lg font-semibold mb-4">
+                  Generated HTML for PDF Export
+                </h3>
                 <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm max-h-96">
                   {generatedHTML}
                 </pre>
               </Card>
             )}
-          </div>
-        )}
+          </TabsContent>
 
-        {currentView === "usage" && (
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">How to Use the Dynamic Financial Report</h3>
-            
-            <div className="space-y-6">
-              <div>
-                <h4 className="font-semibold mb-2">1. Basic Usage</h4>
-                <pre className="bg-muted p-4 rounded-lg text-sm">
-{`import { DynamicFinancialReport } from "@/components/DynamicFinancialReport";
+          <TabsContent value="usage" className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                How to Use the Dynamic Financial Report
+              </h3>
+
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-semibold mb-2">1. Basic Usage</h4>
+                  <pre className="bg-muted p-4 rounded-lg text-sm">
+                    {`import { DynamicFinancialReport } from "@/components/DynamicFinancialReport";
 import { sampleReportData } from "@/lib/financialReportData";
 
 function MyPage() {
@@ -194,13 +182,15 @@ function MyPage() {
     />
   );
 }`}
-                </pre>
-              </div>
+                  </pre>
+                </div>
 
-              <div>
-                <h4 className="font-semibold mb-2">2. Creating Custom Report Data</h4>
-                <pre className="bg-muted p-4 rounded-lg text-sm">
-{`import { createEmptyReportData, validateReportData } from "@/lib/financialReportData";
+                <div>
+                  <h4 className="font-semibold mb-2">
+                    2. Creating Custom Report Data
+                  </h4>
+                  <pre className="bg-muted p-4 rounded-lg text-sm">
+                    {`import { createEmptyReportData, validateReportData } from "@/lib/financialReportData";
 
 // Create a new empty report
 const newReport = createEmptyReportData();
@@ -215,13 +205,13 @@ const validation = validateReportData(newReport);
 if (!validation.isValid) {
   console.log("Validation errors:", validation.errors);
 }`}
-                </pre>
-              </div>
+                  </pre>
+                </div>
 
-              <div>
-                <h4 className="font-semibold mb-2">3. PDF Export with API</h4>
-                <pre className="bg-muted p-4 rounded-lg text-sm">
-{`import { generatePDFOptimizedHTML } from "@/lib/reportHTMLGenerator";
+                <div>
+                  <h4 className="font-semibold mb-2">3. PDF Export with API</h4>
+                  <pre className="bg-muted p-4 rounded-lg text-sm">
+                    {`import { generatePDFOptimizedHTML } from "@/lib/reportHTMLGenerator";
 
 const exportToPDF = async (reportData, paperSize) => {
   const htmlContent = generatePDFOptimizedHTML(reportData, paperSize);
@@ -245,29 +235,60 @@ const exportToPDF = async (reportData, paperSize) => {
   a.download = 'financial-report.pdf';
   a.click();
 };`}
-                </pre>
-              </div>
+                  </pre>
+                </div>
 
-              <div>
-                <h4 className="font-semibold mb-2">4. Data Structure Overview</h4>
-                <ul className="list-disc list-inside space-y-2 text-sm">
-                  <li><strong>reportDate:</strong> Date of the report</li>
-                  <li><strong>company:</strong> Company information (name, ticker, sector)</li>
-                  <li><strong>recommendation:</strong> Investment recommendation details</li>
-                  <li><strong>title:</strong> Main report title</li>
-                  <li><strong>author:</strong> Author information</li>
-                  <li><strong>highlights:</strong> Array of key highlights</li>
-                  <li><strong>mainPoints:</strong> Array of main discussion points</li>
-                  <li><strong>stockPerformance:</strong> Stock performance metrics</li>
-                  <li><strong>companyData:</strong> Company financial metrics</li>
-                  <li><strong>financialData:</strong> Financial table data</li>
-                  <li><strong>disclaimer:</strong> Legal disclaimer text</li>
-                  <li><strong>footer:</strong> Footer information</li>
-                </ul>
+                <div>
+                  <h4 className="font-semibold mb-2">
+                    4. Data Structure Overview
+                  </h4>
+                  <ul className="list-disc list-inside space-y-2 text-sm">
+                    <li>
+                      <strong>reportDate:</strong> Date of the report
+                    </li>
+                    <li>
+                      <strong>company:</strong> Company information (name,
+                      ticker, sector)
+                    </li>
+                    <li>
+                      <strong>recommendation:</strong> Investment recommendation
+                      details
+                    </li>
+                    <li>
+                      <strong>title:</strong> Main report title
+                    </li>
+                    <li>
+                      <strong>author:</strong> Author information
+                    </li>
+                    <li>
+                      <strong>highlights:</strong> Array of key highlights
+                    </li>
+                    <li>
+                      <strong>mainPoints:</strong> Array of main discussion
+                      points
+                    </li>
+                    <li>
+                      <strong>stockPerformance:</strong> Stock performance
+                      metrics
+                    </li>
+                    <li>
+                      <strong>companyData:</strong> Company financial metrics
+                    </li>
+                    <li>
+                      <strong>financialData:</strong> Financial table data
+                    </li>
+                    <li>
+                      <strong>disclaimer:</strong> Legal disclaimer text
+                    </li>
+                    <li>
+                      <strong>footer:</strong> Footer information
+                    </li>
+                  </ul>
+                </div>
               </div>
-            </div>
-          </Card>
-        )}
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

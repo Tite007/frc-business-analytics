@@ -39,7 +39,10 @@ function MyReportPage() {
 ### 2. Creating Custom Report Data
 
 ```jsx
-import { createEmptyReportData, validateReportData } from "@/lib/financialReportData";
+import {
+  createEmptyReportData,
+  validateReportData,
+} from "@/lib/financialReportData";
 
 // Create a new empty report
 const newReport = createEmptyReportData();
@@ -53,15 +56,16 @@ newReport.title = "Strong Q4 Performance Drives Growth";
 // Add highlights
 newReport.highlights = [
   "Revenue exceeded expectations, rising 8% YoY to $94.9B",
-  "iPhone 16 series showing strong adoption rates"
+  "iPhone 16 series showing strong adoption rates",
 ];
 
 // Add main points
 newReport.mainPoints = [
   {
     title: "Strong Product Cycle:",
-    content: "iPhone 16 series launch has been Apple's most successful in three years..."
-  }
+    content:
+      "iPhone 16 series launch has been Apple's most successful in three years...",
+  },
 ];
 
 // Validate the data
@@ -108,28 +112,34 @@ The report data follows a structured format:
 ## Components
 
 ### DynamicFinancialReport
+
 The main component that renders the financial report.
 
 **Props:**
+
 - `reportData` (object): The report data structure
 - `onExportPDF` (function): Callback for PDF export
 - `onPrint` (function): Callback for printing
 
 ### PDFReportLayout_Dynamic
+
 A wrapper component that provides backward compatibility with existing code.
 
 ## Utilities
 
 ### Data Management
+
 - `createEmptyReportData()`: Creates an empty report template
 - `validateReportData(data)`: Validates report data structure
 - `sampleReportData`: Sample data for testing
 
 ### HTML Generation
+
 - `generateFinancialReportHTML(data, paperSize)`: Generates HTML for display
 - `generatePDFOptimizedHTML(data, paperSize)`: Generates PDF-optimized HTML
 
 ### API Integration
+
 - `generateCompleteReport(ticker, analystInput)`: Complete workflow for report generation
 - `downloadReportPDF(reportData, paperSize)`: Download PDF functionality
 
@@ -138,6 +148,7 @@ A wrapper component that provides backward compatibility with existing code.
 ### Option 1: Using Puppeteer (Recommended)
 
 1. Install dependencies:
+
 ```bash
 npm install puppeteer
 ```
@@ -151,7 +162,7 @@ import { generatePDFOptimizedHTML } from "@/lib/reportHTMLGenerator";
 
 const exportToPDF = async (reportData, paperSize) => {
   const htmlContent = generatePDFOptimizedHTML(reportData, paperSize);
-  
+
   // Open in new window for user to save as PDF
   const newWindow = window.open();
   newWindow.document.write(htmlContent);
@@ -167,16 +178,17 @@ The system includes comprehensive API integration utilities:
 import { useFinancialReport } from "@/lib/reportAPI";
 
 function ReportGenerator() {
-  const { reportData, loading, generateReport, exportToPDF } = useFinancialReport("AAPL");
+  const { reportData, loading, generateReport, exportToPDF } =
+    useFinancialReport("AAPL");
 
   const handleGenerate = async () => {
     const analystInput = {
       recommendation: "BUY",
       fairValue: "200.00",
       reportTitle: "Strong Q4 Performance",
-      highlights: ["Revenue growth", "Market expansion"]
+      highlights: ["Revenue growth", "Market expansion"],
     };
-    
+
     await generateReport(analystInput);
   };
 
@@ -217,13 +229,16 @@ src/
 ## Examples
 
 ### 1. Demo Page
+
 Visit `/financial-report-demo` to see a complete example with:
+
 - Live preview
 - Data structure viewer
 - HTML generation
 - Usage examples
 
 ### 2. Integration with Existing Code
+
 Replace your existing `PDFReportLayout` imports:
 
 ```jsx
@@ -235,6 +250,7 @@ import PDFReportLayout from "@/components/PDFReportLayout_Dynamic";
 ```
 
 ### 3. Custom Data Sources
+
 ```jsx
 // Fetch data from your API
 const fetchReportData = async (companyId) => {
@@ -253,15 +269,18 @@ useEffect(() => {
 ## Customization
 
 ### Adding New Fields
+
 1. Update the data structure in `financialReportData.js`
 2. Modify the component in `DynamicFinancialReport.jsx`
 3. Update the HTML generator in `reportHTMLGenerator.js`
 
 ### Styling Changes
+
 - Modify the Tailwind classes in `DynamicFinancialReport.jsx`
 - Update the CSS in `reportHTMLGenerator.js` for PDF export
 
 ### New Paper Sizes
+
 Add to the `paperSizes` array in `DynamicFinancialReport.jsx`:
 
 ```jsx
@@ -283,6 +302,7 @@ const paperSizes = [
 ## Support
 
 For questions or issues, refer to the demo page at `/financial-report-demo` which includes:
+
 - Live examples
 - Data structure reference
 - Usage patterns

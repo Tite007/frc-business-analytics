@@ -7,7 +7,7 @@ import {
   PhotoIcon,
   TableCellsIcon,
   ChartBarIcon,
-  SaveIcon,
+  CheckIcon as SaveIcon,
   EyeIcon,
   ArrowLeftIcon,
   PlusIcon,

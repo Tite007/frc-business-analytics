@@ -45,49 +45,53 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
     company: {
       name: "Zepp Health Corporation",
       ticker: "(NYSE: ZEPP)",
-      sector: "Consumer Electronics"
+      sector: "Consumer Electronics",
     },
     recommendation: {
       rating: "BUY",
       currentPrice: "US$39.70",
       fairValue: "US$60.23",
-      risk: "3"
+      risk: "3",
     },
     title: "Revenue Soars, Institutional Support Fuels Rally",
     author: {
       name: "Sid Rajeev, B.Tech, MBA, CFA",
-      title: "Head of Research"
+      title: "Head of Research",
     },
     highlights: [
       "Zepp's Q2 revenue blew past expectations, rising 60% YoY to $59M, well above management's $50–55M guidance, and 17% ahead of our estimate. Net losses narrowed 29%, beating our estimate by 13%.",
-      "ZEPP is up 1,544% in the past two months, hitting a four-year high. The rally comes as no surprise. In our prior reports, we had flagged that Zepp was trading below its liquid asset value, with the market largely ignoring its underlying potential. We attribute the stock spike to four main factors:"
+      "ZEPP is up 1,544% in the past two months, hitting a four-year high. The rally comes as no surprise. In our prior reports, we had flagged that Zepp was trading below its liquid asset value, with the market largely ignoring its underlying potential. We attribute the stock spike to four main factors:",
     ],
     mainPoints: [
       {
         title: "Strong Amazon Prime Day Performance (NASDAQ: AMZN):",
-        content: "Zepp recorded its best-ever Prime Day in July 2025. In the U.S., Amazfit was ranked the second most improved wearables brand YoY, while sales in EMEA rose 15% YoY."
+        content:
+          "Zepp recorded its best-ever Prime Day in July 2025. In the U.S., Amazfit was ranked the second most improved wearables brand YoY, while sales in EMEA rose 15% YoY.",
       },
       {
         title: "Institutional Support Boosts Confidence:",
-        content: "Point72 Asset Management, led by billionaire Steve Cohen, disclosed a 6% stake last month. Together with Allspring Global (formerly Wells Fargo Asset Management) and FTLH (Fidelity), these three institutions now own over 24% of ZEPP, significantly increasing investor confidence."
+        content:
+          "Point72 Asset Management, led by billionaire Steve Cohen, disclosed a 6% stake last month. Together with Allspring Global (formerly Wells Fargo Asset Management) and FTLH (Fidelity), these three institutions now own over 24% of ZEPP, significantly increasing investor confidence.",
       },
       {
         title: "Viomi Technology's Rapid Interest:",
-        content: "Viomi Technology (NASDAQ: VIOT) announced a special dividend and surged 177% in the past two months. Both Viomi and Zepp are Chinese tech companies with strategic partnerships with Xiaomi (SEHK: 1810; up 169% YoY). Viomi's strong performance likely renewed interest in Xiaomi-affiliated stocks like Zepp."
+        content:
+          "Viomi Technology (NASDAQ: VIOT) announced a special dividend and surged 177% in the past two months. Both Viomi and Zepp are Chinese tech companies with strategic partnerships with Xiaomi (SEHK: 1810; up 169% YoY). Viomi's strong performance likely renewed interest in Xiaomi-affiliated stocks like Zepp.",
       },
       {
         title: "Positive Sector-Wide Momentum:",
-        content: "A broader uptrend in Chinese tech stocks supports Zepp's rally. The S&P China Select ADR Index is up 24% YTD, outperforming the S&P 500's 9% gain."
-      }
+        content:
+          "A broader uptrend in Chinese tech stocks supports Zepp's rally. The S&P China Select ADR Index is up 24% YTD, outperforming the S&P 500's 9% gain.",
+      },
     ],
     additionalContent: [
-      "Industry sources report that global smartwatch shipments rose over 10% YoY in Q2, with most major players delivering solid gains. Consensus forecasts project 6% growth in 2025, and 8% in 2026, driven by product upgrades, increased health awareness, AI integration, and growing wearables adoption."
+      "Industry sources report that global smartwatch shipments rose over 10% YoY in Q2, with most major players delivering solid gains. Consensus forecasts project 6% growth in 2025, and 8% in 2026, driven by product upgrades, increased health awareness, AI integration, and growing wearables adoption.",
     ],
     stockPerformance: {
       ytd: "1,292%",
       oneMonth: "1,232%",
       marketYtd: "9%",
-      marketOneMonth: "10%"
+      marketOneMonth: "10%",
     },
     companyData: {
       weekRange52: "US$2.12-43.93",
@@ -95,7 +99,7 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
       marketCap: "US$570M",
       yield: "N/A",
       forwardPE: "N/A",
-      priceToBook: "2.5x"
+      priceToBook: "2.5x",
     },
     financialData: {
       headers: ["YE Dec 31st", "2024", "2025E", "2026E"],
@@ -107,15 +111,17 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
         { label: "Revenue", values: ["182,603", "237,475", "271,511"] },
         { label: "Gross Profit", values: ["70,234", "91,428", "108,604"] },
         { label: "Net Income", values: ["-75,733", "-30,069", "-11,684"] },
-        { label: "EPS", values: ["-0.29", "-0.12", "-0.05"] }
-      ]
+        { label: "EPS", values: ["-0.29", "-0.12", "-0.05"] },
+      ],
     },
-    disclaimer: "Zepp Health has paid FRC a fee for research coverage and distribution of reports. See last page for other important disclosures, rating, and risk definitions. All figures in US$ unless otherwise specified.",
+    disclaimer:
+      "Zepp Health has paid FRC a fee for research coverage and distribution of reports. See last page for other important disclosures, rating, and risk definitions. All figures in US$ unless otherwise specified.",
     footer: {
       copyright: "©2025 Fundamental Research Corp.",
-      tagline: "22+ Years of Bringing Undiscovered Investment Opportunities to the Forefront",
-      website: "www.researchfrc.com"
-    }
+      tagline:
+        "22+ Years of Bringing Undiscovered Investment Opportunities to the Forefront",
+      website: "www.researchfrc.com",
+    },
   };
 
   // Use provided data or fall back to default
@@ -232,22 +238,29 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
                 </div>
                 <div className="text-sm text-gray-600">
                   <div>
-                    Current Price: <span className="font-medium">{data.recommendation.currentPrice}</span>
+                    Current Price:{" "}
+                    <span className="font-medium">
+                      {data.recommendation.currentPrice}
+                    </span>
                   </div>
                   <div>
-                    Fair Value: <span className="font-medium">{data.recommendation.fairValue}</span>
+                    Fair Value:{" "}
+                    <span className="font-medium">
+                      {data.recommendation.fairValue}
+                    </span>
                   </div>
                   <div>
-                    Risk*: <span className="font-medium">{data.recommendation.risk}</span>
+                    Risk*:{" "}
+                    <span className="font-medium">
+                      {data.recommendation.risk}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Main Title */}
-            <h2 className="text-lg font-bold mb-4">
-              {data.title}
-            </h2>
+            <h2 className="text-lg font-bold mb-4">{data.title}</h2>
 
             {/* Content Section */}
             <div className="flex gap-6">
@@ -302,9 +315,7 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
                 </div>
 
                 <div className="mb-4">
-                  <p className="text-xs font-bold">
-                    {data.author.name}
-                  </p>
+                  <p className="text-xs font-bold">{data.author.name}</p>
                   <p className="text-xs text-gray-600">{data.author.title}</p>
                 </div>
 
@@ -321,7 +332,7 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
                 {/* Stock Data */}
                 <div className="text-xs space-y-2">
                   <div className="flex justify-between">
-                    <span>{data.company.ticker.replace(/[()]/g, '')}</span>
+                    <span>{data.company.ticker.replace(/[()]/g, "")}</span>
                     <div className="text-right">
                       <div>YTD: {data.stockPerformance.ytd}</div>
                       <div>1M: {data.stockPerformance.oneMonth}</div>
@@ -378,7 +389,12 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
                 <thead>
                   <tr className="border-b">
                     {data.financialData.headers.map((header, index) => (
-                      <th key={index} className={index === 0 ? "text-left py-1" : "text-right py-1"}>
+                      <th
+                        key={index}
+                        className={
+                          index === 0 ? "text-left py-1" : "text-right py-1"
+                        }
+                      >
                         {header}
                       </th>
                     ))}
@@ -389,7 +405,9 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
                     <tr key={index}>
                       <td>{row.label}</td>
                       {row.values.map((value, valueIndex) => (
-                        <td key={valueIndex} className="text-right">{value}</td>
+                        <td key={valueIndex} className="text-right">
+                          {value}
+                        </td>
                       ))}
                     </tr>
                   ))}
@@ -400,13 +418,12 @@ export function DynamicFinancialReport({ reportData, onExportPDF, onPrint }) {
             {/* Footer */}
             <div className="mt-6 pt-4 border-t text-xs text-gray-600">
               <p className="mb-2">
-                <span className="text-red-600 font-bold">*</span> {data.disclaimer}
+                <span className="text-red-600 font-bold">*</span>{" "}
+                {data.disclaimer}
               </p>
               <div className="flex justify-between items-center">
                 <span>{data.footer.copyright}</span>
-                <span>
-                  "{data.footer.tagline}"
-                </span>
+                <span>"{data.footer.tagline}"</span>
                 <span>{data.footer.website}</span>
               </div>
             </div>

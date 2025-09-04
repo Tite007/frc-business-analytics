@@ -1,6 +1,9 @@
 // Utility for generating HTML from financial report data for PDF export
 
-export function generateFinancialReportHTML(reportData, paperSize = { width: 8.5, height: 11, unit: "in" }) {
+export function generateFinancialReportHTML(
+  reportData,
+  paperSize = { width: 8.5, height: 11, unit: "in" }
+) {
   // Convert paper size to pixels for CSS
   const getPixelDimensions = (size) => {
     if (size.unit === "in") {
@@ -403,7 +406,9 @@ export function generateFinancialReportHTML(reportData, paperSize = { width: 8.5
         </div>
         <div class="recommendation-details">
           <div>
-            Current Price: <span>${reportData.recommendation.currentPrice}</span>
+            Current Price: <span>${
+              reportData.recommendation.currentPrice
+            }</span>
           </div>
           <div>
             Fair Value: <span>${reportData.recommendation.fairValue}</span>
@@ -435,32 +440,44 @@ export function generateFinancialReportHTML(reportData, paperSize = { width: 8.5
         <div class="highlights">
           <h3>Highlights</h3>
           <div class="highlights-list">
-            ${reportData.highlights.map(highlight => `
+            ${reportData.highlights
+              .map(
+                (highlight) => `
               <div class="highlight-item">
                 <span>➤</span>
                 <p>${highlight}</p>
               </div>
-            `).join('')}
+            `
+              )
+              .join("")}
           </div>
         </div>
 
         <!-- Main Points -->
         <div class="main-points">
-          ${reportData.mainPoints.map((point, index) => `
+          ${reportData.mainPoints
+            .map(
+              (point, index) => `
             <div class="main-point">
               <span class="main-point-title">
                 ${String.fromCharCode(97 + index)}) ${point.title}
               </span> 
               ${point.content}
             </div>
-          `).join('')}
+          `
+            )
+            .join("")}
 
-          ${reportData.additionalContent.map(content => `
+          ${reportData.additionalContent
+            .map(
+              (content) => `
             <div class="additional-content">
               <span>➤</span>
               <p>${content}</p>
             </div>
-          `).join('')}
+          `
+            )
+            .join("")}
         </div>
       </div>
 
@@ -490,7 +507,7 @@ export function generateFinancialReportHTML(reportData, paperSize = { width: 8.5
         <!-- Stock Data -->
         <div class="stock-data">
           <div class="stock-row">
-            <span>${reportData.company.ticker.replace(/[()]/g, '')}</span>
+            <span>${reportData.company.ticker.replace(/[()]/g, "")}</span>
             <div class="stock-values">
               <div>YTD: ${reportData.stockPerformance.ytd}</div>
               <div>1M: ${reportData.stockPerformance.oneMonth}</div>
@@ -544,20 +561,32 @@ export function generateFinancialReportHTML(reportData, paperSize = { width: 8.5
       <table class="financial-table">
         <thead>
           <tr>
-            ${reportData.financialData.headers.map(header => `
+            ${reportData.financialData.headers
+              .map(
+                (header) => `
               <th>${header}</th>
-            `).join('')}
+            `
+              )
+              .join("")}
           </tr>
         </thead>
         <tbody>
-          ${reportData.financialData.rows.map(row => `
+          ${reportData.financialData.rows
+            .map(
+              (row) => `
             <tr>
               <td>${row.label}</td>
-              ${row.values.map(value => `
+              ${row.values
+                .map(
+                  (value) => `
                 <td>${value}</td>
-              `).join('')}
+              `
+                )
+                .join("")}
             </tr>
-          `).join('')}
+          `
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -582,12 +611,15 @@ export function generateFinancialReportHTML(reportData, paperSize = { width: 8.5
 }
 
 // Function to generate PDF-optimized HTML (simplified for better PDF rendering)
-export function generatePDFOptimizedHTML(reportData, paperSize = { width: 8.5, height: 11, unit: "in" }) {
+export function generatePDFOptimizedHTML(
+  reportData,
+  paperSize = { width: 8.5, height: 11, unit: "in" }
+) {
   const baseHTML = generateFinancialReportHTML(reportData, paperSize);
-  
+
   // Add PDF-specific optimizations
   return baseHTML.replace(
-    '<style>',
+    "<style>",
     `<style>
     @page {
       size: ${paperSize.width}${paperSize.unit} ${paperSize.height}${paperSize.unit};
@@ -607,7 +639,7 @@ export function parseReportData(jsonString) {
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error('Error parsing report data:', error);
+    console.error("Error parsing report data:", error);
     return null;
   }
 }
