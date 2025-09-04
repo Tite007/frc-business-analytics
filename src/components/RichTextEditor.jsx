@@ -34,7 +34,7 @@ const RichTextEditor = forwardRef(
       <div className={`rich-text-editor ${className}`}>
         <style jsx>{`
           .editor-container {
-            border: 2px solid ${focused ? '#3b82f6' : '#e5e7eb'};
+            border: 2px solid ${focused ? "#3b82f6" : "#e5e7eb"};
             border-radius: 8px;
             transition: border-color 0.2s ease;
             background: white;
@@ -78,7 +78,8 @@ const RichTextEditor = forwardRef(
             border: none;
             outline: none;
             padding: 12px;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+              Roboto, sans-serif;
             font-size: 14px;
             line-height: 1.6;
             resize: vertical;
@@ -97,7 +98,7 @@ const RichTextEditor = forwardRef(
 
         <div className="editor-container">
           <div className="editor-toolbar">
-            <button 
+            <button
               type="button"
               className="toolbar-button"
               onClick={() => {
@@ -105,7 +106,10 @@ const RichTextEditor = forwardRef(
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
                 const selectedText = textarea.value.substring(start, end);
-                const newText = textarea.value.substring(0, start) + `**${selectedText}**` + textarea.value.substring(end);
+                const newText =
+                  textarea.value.substring(0, start) +
+                  `**${selectedText}**` +
+                  textarea.value.substring(end);
                 onChange && onChange(newText);
                 setTimeout(() => {
                   textarea.focus();
@@ -115,7 +119,7 @@ const RichTextEditor = forwardRef(
             >
               <strong>B</strong>
             </button>
-            <button 
+            <button
               type="button"
               className="toolbar-button"
               onClick={() => {
@@ -123,7 +127,10 @@ const RichTextEditor = forwardRef(
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
                 const selectedText = textarea.value.substring(start, end);
-                const newText = textarea.value.substring(0, start) + `*${selectedText}*` + textarea.value.substring(end);
+                const newText =
+                  textarea.value.substring(0, start) +
+                  `*${selectedText}*` +
+                  textarea.value.substring(end);
                 onChange && onChange(newText);
                 setTimeout(() => {
                   textarea.focus();
@@ -133,13 +140,16 @@ const RichTextEditor = forwardRef(
             >
               <em>I</em>
             </button>
-            <button 
+            <button
               type="button"
               className="toolbar-button"
               onClick={() => {
                 const textarea = textareaRef.current;
                 const start = textarea.selectionStart;
-                const newText = textarea.value.substring(0, start) + '\n• ' + textarea.value.substring(start);
+                const newText =
+                  textarea.value.substring(0, start) +
+                  "\n• " +
+                  textarea.value.substring(start);
                 onChange && onChange(newText);
                 setTimeout(() => {
                   textarea.focus();
@@ -149,13 +159,16 @@ const RichTextEditor = forwardRef(
             >
               • List
             </button>
-            <button 
+            <button
               type="button"
               className="toolbar-button"
               onClick={() => {
                 const textarea = textareaRef.current;
                 const start = textarea.selectionStart;
-                const newText = textarea.value.substring(0, start) + '\n1. ' + textarea.value.substring(start);
+                const newText =
+                  textarea.value.substring(0, start) +
+                  "\n1. " +
+                  textarea.value.substring(start);
                 onChange && onChange(newText);
                 setTimeout(() => {
                   textarea.focus();
@@ -165,7 +178,7 @@ const RichTextEditor = forwardRef(
             >
               1. List
             </button>
-            <button 
+            <button
               type="button"
               className="toolbar-button"
               onClick={() => {
@@ -173,7 +186,10 @@ const RichTextEditor = forwardRef(
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
                 const selectedText = textarea.value.substring(start, end);
-                const newText = textarea.value.substring(0, start) + `[${selectedText}](url)` + textarea.value.substring(end);
+                const newText =
+                  textarea.value.substring(0, start) +
+                  `[${selectedText}](url)` +
+                  textarea.value.substring(end);
                 onChange && onChange(newText);
                 setTimeout(() => {
                   textarea.focus();
@@ -184,7 +200,7 @@ const RichTextEditor = forwardRef(
               🔗 Link
             </button>
           </div>
-          
+
           <textarea
             ref={textareaRef}
             className="editor-textarea"
