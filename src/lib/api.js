@@ -12,15 +12,6 @@ const getBaseURL = () => {
   console.log("NEXT_PUBLIC_BACKEND_URL value:", envURL);
   console.log("Type of envURL:", typeof envURL);
 
-  // Temporary hardcode for localhost during development
-  if (
-    typeof window !== "undefined" &&
-    window.location.hostname === "localhost"
-  ) {
-    console.log("Detected localhost, forcing development URL");
-    return "http://localhost:8000";
-  }
-
   const fallbackURL = "https://dashboard.researchfrc.com";
 
   // Handle various edge cases
@@ -334,6 +325,80 @@ export async function getBloombergTrends(ticker, days = 90) {
     const errorMessage =
       statusCode === 404
         ? `Bloomberg readership endpoints not available (404)`
+        : error.message;
+    return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+export async function getBloombergAnalysis(ticker, options = {}) {
+  try {
+    const queryParams = {};
+
+    // Add generate_if_missing parameter if specified
+    if (options.generate_if_missing) {
+      queryParams.generate_if_missing = true;
+    }
+
+    const response = await api.get(`/api/bloomberg/analysis/${ticker}`, {
+      params: queryParams,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg analysis:", error);
+    // Include status code in error message for better handling
+    const statusCode = error.response?.status;
+    const errorMessage = error.response?.data?.detail || error.message;
+
+    if (statusCode === 404) {
+      console.log(`Bloomberg analysis endpoint not available for ${ticker}`);
+    }
+
+    return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+export async function getBloombergAnalysisSummary(ticker) {
+  try {
+    const response = await api.get(`/api/bloomberg/analysis/${ticker}/summary`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg analysis summary:", error);
+    const statusCode = error.response?.status;
+    const errorMessage =
+      statusCode === 404
+        ? `Bloomberg analysis summary endpoint not available (404)`
+        : error.message;
+    return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+export async function generateBloombergAnalysis(ticker) {
+  try {
+    const response = await api.post(
+      `/api/bloomberg/analysis/${ticker}/generate`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error generating Bloomberg analysis:", error);
+    const statusCode = error.response?.status;
+    const errorMessage =
+      statusCode === 404
+        ? `Bloomberg analysis generation endpoint not available (404)`
+        : error.message;
+    return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+export async function getAllBloombergAnalyses() {
+  try {
+    const response = await api.get(`/api/bloomberg/analyses`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all Bloomberg analyses:", error);
+    const statusCode = error.response?.status;
+    const errorMessage =
+      statusCode === 404
+        ? `Bloomberg analyses list endpoint not available (404)`
         : error.message;
     return { error: true, message: errorMessage, status: statusCode };
   }
