@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import ChartComponent from "@/components/ChartComponent";
 import TableComponent from "@/components/TableComponent";
 import AnalysisComponent from "@/components/AnalysisComponent";
+import BloombergReadershipTable from "@/components/BloombergReadershipTable";
 import { getCompanyData } from "@/lib/api";
 import Link from "next/link";
 
@@ -759,6 +760,9 @@ export default function CompanyPage() {
               />
             </div>
           )}
+
+          {/* Bloomberg Readership Table */}
+          <BloombergReadershipTable ticker={ticker} />
 
           {/* Analysis Component */}
           {(analysisData || companyData.data_available?.has_ai_analysis) && (

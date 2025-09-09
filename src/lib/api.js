@@ -1,9 +1,44 @@
 import axios from "axios";
 
-// Use the backend URL directly since CORS is fixed on the backend
+// Use the backend URL from environment variable with fallback
+const getBaseURL = () => {
+  const envURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  // Debug: Log all environment variables that start with NEXT_PUBLIC
+  console.log(
+    "All NEXT_PUBLIC env vars:",
+    Object.keys(process.env).filter((key) => key.startsWith("NEXT_PUBLIC"))
+  );
+  console.log("NEXT_PUBLIC_BACKEND_URL value:", envURL);
+  console.log("Type of envURL:", typeof envURL);
+
+  // Temporary hardcode for localhost during development
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname === "localhost"
+  ) {
+    console.log("Detected localhost, forcing development URL");
+    return "http://localhost:8000";
+  }
+
+  const fallbackURL = "https://dashboard.researchfrc.com";
+
+  // Handle various edge cases
+  if (!envURL || envURL.trim() === "") {
+    console.warn(
+      "NEXT_PUBLIC_BACKEND_URL is empty, using fallback:",
+      fallbackURL
+    );
+    return fallbackURL;
+  }
+
+  const baseURL = envURL.trim();
+  console.log("Using API Base URL:", baseURL);
+  return baseURL;
+};
+
 const api = axios.create({
-  baseURL:
-    process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com",
+  baseURL: getBaseURL(),
 });
 
 // Enhanced API functions for the FRC backend
@@ -218,5 +253,88 @@ export async function getCurrentUser() {
   } catch (error) {
     console.error("Error fetching current user:", error);
     return { error: true, message: error.message };
+  }
+}
+
+// Bloomberg Readership API Functions
+export async function getBloombergReadership(ticker, days = 90) {
+  try {
+    const response = await api.get(`/api/readership/${ticker}`, {
+      params: { days },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg readership:", error);
+    // Include status code in error message for better handling
+    const statusCode = error.response?.status;
+    const errorMessage =
+      statusCode === 404
+        ? `Bloomberg readership endpoints not available (404)`
+        : error.message;
+    return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+export async function getBloombergInstitutional(ticker, options = {}) {
+  try {
+    // Build query parameters object for axios
+    const queryParams = {
+      days: options.days || 90,
+      show_embargoed: options.show_embargoed !== false,
+      limit: options.limit || 100,
+    };
+
+    // Add offset parameter for pagination
+    if (options.offset !== undefined) {
+      queryParams.offset = options.offset;
+    }
+
+    const response = await api.get(`/api/readership/${ticker}/institutional`, {
+      params: queryParams,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg institutional data:", error);
+    // Include status code in error message for better handling
+    const statusCode = error.response?.status;
+    const errorMessage =
+      statusCode === 404
+        ? `Bloomberg readership endpoints not available (404)`
+        : error.message;
+    return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+export async function getBloombergSummary(ticker) {
+  try {
+    const response = await api.get(`/api/readership/${ticker}/summary`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg summary:", error);
+    // Include status code in error message for better handling
+    const statusCode = error.response?.status;
+    const errorMessage =
+      statusCode === 404
+        ? `Bloomberg readership endpoints not available (404)`
+        : error.message;
+    return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+export async function getBloombergTrends(ticker, days = 90) {
+  try {
+    const response = await api.get(`/api/readership/${ticker}/trends`, {
+      params: { days },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg trends:", error);
+    // Include status code in error message for better handling
+    const statusCode = error.response?.status;
+    const errorMessage =
+      statusCode === 404
+        ? `Bloomberg readership endpoints not available (404)`
+        : error.message;
+    return { error: true, message: errorMessage, status: statusCode };
   }
 }
