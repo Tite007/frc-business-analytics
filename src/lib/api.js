@@ -344,15 +344,22 @@ export async function getBloombergAnalysis(ticker, options = {}) {
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching Bloomberg analysis:", error);
-    // Include status code in error message for better handling
+    // Handle 404 errors gracefully (endpoint not available)
     const statusCode = error.response?.status;
-    const errorMessage = error.response?.data?.detail || error.message;
-
     if (statusCode === 404) {
-      console.log(`Bloomberg analysis endpoint not available for ${ticker}`);
+      console.log(
+        `Bloomberg analysis endpoint not available for ${ticker} (404)`
+      );
+      return {
+        error: true,
+        message: "Bloomberg analysis endpoint not available (404)",
+        status: statusCode,
+      };
     }
 
+    console.error("Error fetching Bloomberg analysis:", error);
+    // Include status code in error message for better handling
+    const errorMessage = error.response?.data?.detail || error.message;
     return { error: true, message: errorMessage, status: statusCode };
   }
 }

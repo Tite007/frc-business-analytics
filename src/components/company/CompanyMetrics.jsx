@@ -199,12 +199,17 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                         </span>
                       </td>
                       <td className="border border-gray-300 px-4 py-3 text-center">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                          +
-                          {Math.abs(
-                            report["Volume Spike 5 Days (%)"] || 0
-                          ).toFixed(1)}
-                          %
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                            (report["Volume Spike 5 Days (%)"] || 0) >= 0
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {(report["Volume Spike 5 Days (%)"] || 0) >= 0
+                            ? "+"
+                            : ""}
+                          {(report["Volume Spike 5 Days (%)"] || 0).toFixed(1)}%
                         </span>
                       </td>
                     </tr>
@@ -393,11 +398,19 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                             5-Day Spike:
                           </td>
                           <td className="border border-gray-300 px-3 py-2 text-center">
-                            <span className="inline-flex items-center px-2 py-1 rounded text-sm font-medium bg-purple-100 text-purple-800">
-                              +
-                              {Math.abs(
-                                report["Volume Spike 5 Days (%)"] || 0
-                              ).toFixed(1)}
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded text-sm font-medium ${
+                                (report["Volume Spike 5 Days (%)"] || 0) >= 0
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {(report["Volume Spike 5 Days (%)"] || 0) >= 0
+                                ? "+"
+                                : ""}
+                              {(report["Volume Spike 5 Days (%)"] || 0).toFixed(
+                                1
+                              )}
                               %
                             </span>
                           </td>

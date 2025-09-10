@@ -31,7 +31,8 @@ const BloombergAnalysis = ({ ticker }) => {
           errorMessage.includes("not found") ||
           errorMessage.includes("Request failed with status code 404") ||
           errorMessage.includes("No analysis found") ||
-          errorMessage.includes("No Bloomberg readership data found")
+          errorMessage.includes("No Bloomberg readership data found") ||
+          errorMessage.includes("Bloomberg analysis endpoint not available")
         ) {
           // Bloomberg analysis not available - hide component
           console.log("Bloomberg analysis not available for", ticker);
@@ -59,7 +60,8 @@ const BloombergAnalysis = ({ ticker }) => {
         statusCode === 404 ||
         errorMessage.includes("404") ||
         errorMessage.includes("not found") ||
-        errorMessage.includes("Request failed with status code 404")
+        errorMessage.includes("Request failed with status code 404") ||
+        errorMessage.includes("Bloomberg analysis endpoint not available")
       ) {
         // Bloomberg analysis endpoint not available - hide component
         console.log("Bloomberg analysis endpoint not available for", ticker);
@@ -72,9 +74,38 @@ const BloombergAnalysis = ({ ticker }) => {
     }
   };
 
-  // Don't render if no data and no error (means Bloomberg analysis isn't available)
+  // Show placeholder if no data available (Bloomberg endpoint not available)
   if (!loading && !error && !analysisData) {
-    return null;
+    return (
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="px-8 py-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                🤖 Bloomberg AI Analysis
+              </h3>
+              <p className="text-gray-600">
+                AI-powered insights from Bloomberg Terminal readership data
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="p-8 text-center">
+          <div className="text-gray-400 text-5xl mb-4">🔄</div>
+          <h4 className="text-xl font-bold text-gray-600 mb-2">
+            Bloomberg Analysis Not Available
+          </h4>
+          <p className="text-gray-500 mb-4">
+            Bloomberg AI analysis endpoints are not currently available for this
+            environment.
+          </p>
+          <p className="text-gray-400 text-sm">
+            This feature requires Bloomberg Terminal integration and may be
+            available in the production environment.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (loading) {

@@ -43,7 +43,8 @@ const BloombergReadershipTable = ({ ticker }) => {
         if (
           errorMessage.includes("404") ||
           errorMessage.includes("not found") ||
-          errorMessage.includes("Request failed with status code 404")
+          errorMessage.includes("Request failed with status code 404") ||
+          errorMessage.includes("Bloomberg readership endpoints not available")
         ) {
           // Bloomberg endpoints not available - hide component
           console.log("Bloomberg endpoints not available for", ticker);
@@ -107,7 +108,8 @@ const BloombergReadershipTable = ({ ticker }) => {
       if (
         errorMessage.includes("404") ||
         errorMessage.includes("not found") ||
-        errorMessage.includes("Request failed with status code 404")
+        errorMessage.includes("Request failed with status code 404") ||
+        errorMessage.includes("Bloomberg readership endpoints not available")
       ) {
         setInstitutionalData([]);
         setSummaryData(null);
@@ -224,9 +226,38 @@ const BloombergReadershipTable = ({ ticker }) => {
     setCurrentPage(1); // Reset to first page
   };
 
-  // Don't render if no data and no error (means Bloomberg endpoints aren't available or ticker doesn't have Bloomberg data)
+  // Show placeholder if no data available (Bloomberg endpoints not available)
   if (!loading && !error && institutionalData.length === 0 && !summaryData) {
-    return null;
+    return (
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                📊 Bloomberg Terminal Readership
+              </h3>
+              <p className="text-gray-600">
+                Professional readership activity from Bloomberg Terminal users
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="p-8 text-center">
+          <div className="text-gray-400 text-5xl mb-4">🔄</div>
+          <h4 className="text-xl font-bold text-gray-600 mb-2">
+            Bloomberg Readership Data Not Available
+          </h4>
+          <p className="text-gray-500 mb-4">
+            Bloomberg readership endpoints are not currently available for this
+            environment.
+          </p>
+          <p className="text-gray-400 text-sm">
+            This feature requires Bloomberg Terminal integration and may be
+            available in the production environment.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // Loading state
