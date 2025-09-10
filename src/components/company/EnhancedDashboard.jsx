@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { 
-  ChartBarIcon, 
-  TableCellsIcon, 
+import {
+  ChartBarIcon,
+  TableCellsIcon,
   DocumentChartBarIcon,
   EyeIcon,
   AdjustmentsHorizontalIcon,
@@ -12,7 +12,7 @@ import {
   CalendarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
 import ChartComponent from "@/components/ChartComponent";
@@ -69,45 +69,61 @@ export default function EnhancedDashboard({
   };
 
   // Data availability checks
-  const hasChartData = chartData || companyData.data_available?.has_chart || companyData.has_chart;
-  const hasMetricsData = metricsData || companyData.data_available?.has_metrics || companyData.has_metrics;
-  const hasAnalysisData = analysisData || companyData.data_available?.has_ai_analysis;
+  const hasChartData =
+    chartData || companyData.data_available?.has_chart || companyData.has_chart;
+  const hasMetricsData =
+    metricsData ||
+    companyData.data_available?.has_metrics ||
+    companyData.has_metrics;
+  const hasAnalysisData =
+    analysisData || companyData.data_available?.has_ai_analysis;
 
   // Calculate summary metrics
   const summaryMetrics = useMemo(() => {
     if (!metricsData || metricsData.length === 0) return null;
 
     const totalReports = metricsData.length;
-    const avgVolumeChange = metricsData.reduce((sum, report) => 
-      sum + (report["Volume Change 30 Days (%)"] || 0), 0) / totalReports;
-    const avgPrePostChange = metricsData.reduce((sum, report) => 
-      sum + (report["Volume Change Pre-Post 30 Days (%)"] || 0), 0) / totalReports;
-    const positiveReports = metricsData.filter(report => 
-      (report["Volume Change 30 Days (%)"] || 0) > 0).length;
+    const avgVolumeChange =
+      metricsData.reduce(
+        (sum, report) => sum + (report["Volume Change 30 Days (%)"] || 0),
+        0
+      ) / totalReports;
+    const avgPrePostChange =
+      metricsData.reduce(
+        (sum, report) =>
+          sum + (report["Volume Change Pre-Post 30 Days (%)"] || 0),
+        0
+      ) / totalReports;
+    const positiveReports = metricsData.filter(
+      (report) => (report["Volume Change 30 Days (%)"] || 0) > 0
+    ).length;
 
     return {
       totalReports,
       avgVolumeChange,
       avgPrePostChange,
       positiveReports,
-      successRate: (positiveReports / totalReports) * 100
+      successRate: (positiveReports / totalReports) * 100,
     };
   }, [metricsData]);
 
   // Filter and sort data
   const filteredMetricsData = useMemo(() => {
     if (!metricsData) return [];
-    
-    let filtered = metricsData.filter(report =>
-      !searchTerm || 
-      report["Report Title"]?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report["Report Number"]?.toString().includes(searchTerm)
+
+    let filtered = metricsData.filter(
+      (report) =>
+        !searchTerm ||
+        report["Report Title"]
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        report["Report Number"]?.toString().includes(searchTerm)
     );
 
     // Sort data
     filtered.sort((a, b) => {
       let aVal, bVal;
-      
+
       switch (sortBy) {
         case "date":
           aVal = new Date(a["Publication Date"]);
@@ -141,33 +157,44 @@ export default function EnhancedDashboard({
       id: "overview",
       name: "Overview",
       icon: ChartBarIcon,
-      count: null
+      count: null,
     },
     {
       id: "metrics",
       name: "Performance Metrics",
       icon: TableCellsIcon,
-      count: getTotalReports()
+      count: getTotalReports(),
     },
     {
       id: "analysis",
       name: "AI Analysis",
       icon: DocumentChartBarIcon,
-      count: null
+      count: null,
     },
     {
       id: "bloomberg",
       name: "Bloomberg Data",
       icon: EyeIcon,
-      count: null
-    }
+      count: null,
+    },
   ];
 
   // Export function for mobile controls
   const exportData = () => {
     const csvContent = [
-      ["Report #", "Report Title", "Company", "Ticker", "Price on Release", "Publication Date", "Avg Volume 5D", "Avg Volume 10D", "Volume Δ 30D (%)", "Pre-Post Δ 30D (%)"],
-      ...filteredMetricsData.map(report => [
+      [
+        "Report #",
+        "Report Title",
+        "Company",
+        "Ticker",
+        "Price on Release",
+        "Publication Date",
+        "Avg Volume 5D",
+        "Avg Volume 10D",
+        "Volume Δ 30D (%)",
+        "Pre-Post Δ 30D (%)",
+      ],
+      ...filteredMetricsData.map((report) => [
         report["Report Number"],
         report["Report Title"],
         getCompanyName(),
@@ -177,13 +204,15 @@ export default function EnhancedDashboard({
         report["Avg Volume Post 5 Days"],
         report["Avg Volume Post 10 Days"],
         report["Volume Change 30 Days (%)"],
-        report["Volume Change Pre-Post 30 Days (%)"]
-      ])
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\\n');
+        report["Volume Change Pre-Post 30 Days (%)"],
+      ]),
+    ]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${ticker}_performance_metrics.csv`;
     a.click();
@@ -220,10 +249,10 @@ export default function EnhancedDashboard({
           </select>
 
           <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
             className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
           >
-            {sortOrder === 'asc' ? '↑' : '↓'}
+            {sortOrder === "asc" ? "↑" : "↓"}
           </button>
 
           <button
@@ -239,7 +268,8 @@ export default function EnhancedDashboard({
       {/* Results Summary */}
       {(searchTerm || filteredMetricsData.length !== metricsData?.length) && (
         <div className="mt-4 text-sm text-gray-600">
-          Showing {filteredMetricsData.length} of {metricsData?.length || 0} reports
+          Showing {filteredMetricsData.length} of {metricsData?.length || 0}{" "}
+          reports
           {searchTerm && ` (filtered by "${searchTerm}")`}
         </div>
       )}
@@ -288,9 +318,13 @@ export default function EnhancedDashboard({
                   <tab.icon className="h-5 w-5" />
                   {tab.name}
                   {tab.count !== null && (
-                    <span className={`${
-                      isActive ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
-                    } ml-2 py-1 px-2 rounded-full text-xs font-medium`}>
+                    <span
+                      className={`${
+                        isActive
+                          ? "bg-blue-100 text-blue-600"
+                          : "bg-gray-100 text-gray-600"
+                      } ml-2 py-1 px-2 rounded-full text-xs font-medium`}
+                    >
                       {tab.count}
                     </span>
                   )}
@@ -307,7 +341,9 @@ export default function EnhancedDashboard({
               {/* Chart Component */}
               {hasChartData && (
                 <div className="bg-gray-50 rounded-lg p-4 lg:p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Price Chart</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Price Chart
+                  </h3>
                   <ChartComponent
                     chartData={chartData}
                     ticker={ticker}
@@ -321,7 +357,9 @@ export default function EnhancedDashboard({
               {/* Quick Metrics Overview */}
               {hasMetricsData && (
                 <div className="bg-gray-50 rounded-lg p-4 lg:p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Overview</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Quick Overview
+                  </h3>
                   <TableComponent
                     metrics={metricsData || []}
                     ticker={ticker}
@@ -367,7 +405,7 @@ export default function EnhancedDashboard({
 
               {/* Desktop Search Bar */}
               <SearchAndFilterBar />
-              
+
               {hasMetricsData ? (
                 <>
                   <EnhancedMetricsTable
@@ -375,11 +413,13 @@ export default function EnhancedDashboard({
                     companyData={companyData}
                     ticker={ticker}
                   />
-                  
+
                   {filteredMetricsData.length === 0 && searchTerm && (
                     <div className="text-center py-12">
                       <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 text-lg">No reports match your search criteria.</p>
+                      <p className="text-gray-500 text-lg">
+                        No reports match your search criteria.
+                      </p>
                       <button
                         onClick={() => setSearchTerm("")}
                         className="mt-2 text-blue-600 hover:text-blue-800 font-medium"

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { 
-  ArrowDownTrayIcon, 
+import {
+  ArrowDownTrayIcon,
   EyeIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon
+  ArrowTrendingDownIcon,
 } from "@heroicons/react/24/outline";
 
 export default function EnhancedMetricsTable({
@@ -53,8 +53,19 @@ export default function EnhancedMetricsTable({
 
   const exportData = () => {
     const csvContent = [
-      ["Report #", "Report Title", "Company", "Ticker", "Price on Release", "Publication Date", "Avg Volume 5D", "Avg Volume 10D", "Volume Δ 30D (%)", "Pre-Post Δ 30D (%)"],
-      ...metricsData.map(report => [
+      [
+        "Report #",
+        "Report Title",
+        "Company",
+        "Ticker",
+        "Price on Release",
+        "Publication Date",
+        "Avg Volume 5D",
+        "Avg Volume 10D",
+        "Volume Δ 30D (%)",
+        "Pre-Post Δ 30D (%)",
+      ],
+      ...metricsData.map((report) => [
         report["Report Number"],
         report["Report Title"],
         getCompanyName(),
@@ -64,13 +75,15 @@ export default function EnhancedMetricsTable({
         report["Avg Volume Post 5 Days"],
         report["Avg Volume Post 10 Days"],
         report["Volume Change 30 Days (%)"],
-        report["Volume Change Pre-Post 30 Days (%)"]
-      ])
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\\n');
+        report["Volume Change Pre-Post 30 Days (%)"],
+      ]),
+    ]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${ticker}_performance_metrics.csv`;
     a.click();
@@ -80,7 +93,7 @@ export default function EnhancedMetricsTable({
   const formatPercentage = (value) => {
     if (value === null || value === undefined) return "0.00%";
     const num = parseFloat(value);
-    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}%`;
+    return `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
   };
 
   const getPercentageColor = (value) => {
@@ -92,13 +105,20 @@ export default function EnhancedMetricsTable({
   const CardView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {metricsData.map((report, index) => (
-        <div key={`${ticker}-${report["Report Number"]}`} className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden">
+        <div
+          key={`${ticker}-${report["Report Number"]}`}
+          className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden"
+        >
           {/* Card Header */}
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-bold text-lg">Report #{report["Report Number"]}</h3>
-                <p className="text-blue-100 text-sm">{report["Publication Date"]}</p>
+                <h3 className="font-bold text-lg">
+                  Report #{report["Report Number"]}
+                </h3>
+                <p className="text-blue-100 text-sm">
+                  {report["Publication Date"]}
+                </p>
               </div>
               <span className="bg-white bg-opacity-20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
                 {ticker}
@@ -110,8 +130,13 @@ export default function EnhancedMetricsTable({
           <div className="p-4 space-y-4">
             {/* Report Title */}
             <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-1">Report Title</h4>
-              <p className="text-gray-900 text-sm line-clamp-2" title={report["Report Title"]}>
+              <h4 className="text-sm font-medium text-gray-600 mb-1">
+                Report Title
+              </h4>
+              <p
+                className="text-gray-900 text-sm line-clamp-2"
+                title={report["Report Title"]}
+              >
                 {report["Report Title"]}
               </p>
             </div>
@@ -120,9 +145,11 @@ export default function EnhancedMetricsTable({
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded-lg p-3">
                 <p className="text-xs text-gray-600 mb-1">Price on Release</p>
-                <p className="font-semibold text-gray-900">{report["Price on Release"]}</p>
+                <p className="font-semibold text-gray-900">
+                  {report["Price on Release"]}
+                </p>
               </div>
-              
+
               <div className="bg-gray-50 rounded-lg p-3">
                 <p className="text-xs text-gray-600 mb-1">Avg Volume 5D</p>
                 <p className="font-semibold text-gray-900">
@@ -136,11 +163,16 @@ export default function EnhancedMetricsTable({
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <span className="text-sm text-gray-600">Volume Δ 30D</span>
                 <div className="flex items-center gap-1">
-                  {(report["Volume Change 30 Days (%)"] || 0) >= 0 ? 
-                    <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" /> : 
+                  {(report["Volume Change 30 Days (%)"] || 0) >= 0 ? (
+                    <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
+                  ) : (
                     <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
-                  }
-                  <span className={`font-semibold ${getPercentageColor(report["Volume Change 30 Days (%)"])}`}>
+                  )}
+                  <span
+                    className={`font-semibold ${getPercentageColor(
+                      report["Volume Change 30 Days (%)"]
+                    )}`}
+                  >
                     {formatPercentage(report["Volume Change 30 Days (%)"])}
                   </span>
                 </div>
@@ -149,12 +181,19 @@ export default function EnhancedMetricsTable({
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <span className="text-sm text-gray-600">Pre-Post Δ 30D</span>
                 <div className="flex items-center gap-1">
-                  {(report["Volume Change Pre-Post 30 Days (%)"] || 0) >= 0 ? 
-                    <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" /> : 
+                  {(report["Volume Change Pre-Post 30 Days (%)"] || 0) >= 0 ? (
+                    <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
+                  ) : (
                     <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
-                  }
-                  <span className={`font-semibold ${getPercentageColor(report["Volume Change Pre-Post 30 Days (%)"])}`}>
-                    {formatPercentage(report["Volume Change Pre-Post 30 Days (%)"])}
+                  )}
+                  <span
+                    className={`font-semibold ${getPercentageColor(
+                      report["Volume Change Pre-Post 30 Days (%)"]
+                    )}`}
+                  >
+                    {formatPercentage(
+                      report["Volume Change Pre-Post 30 Days (%)"]
+                    )}
                   </span>
                 </div>
               </div>
@@ -165,7 +204,7 @@ export default function EnhancedMetricsTable({
     </div>
   );
 
-  // Table View Component  
+  // Table View Component
   const TableView = () => (
     <div className="overflow-hidden border border-gray-200 rounded-xl">
       {/* Desktop Table */}
@@ -199,7 +238,11 @@ export default function EnhancedMetricsTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {metricsData.map((report, index) => (
               <React.Fragment key={`${ticker}-${report["Report Number"]}`}>
-                <tr className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 transition-colors duration-150`}>
+                <tr
+                  className={`${
+                    index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  } hover:bg-blue-50 transition-colors duration-150`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {report["Report Number"]}
                   </td>
@@ -216,29 +259,44 @@ export default function EnhancedMetricsTable({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-1">
-                      {(report["Volume Change 30 Days (%)"] || 0) >= 0 ? 
-                        <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" /> : 
+                      {(report["Volume Change 30 Days (%)"] || 0) >= 0 ? (
+                        <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
+                      ) : (
                         <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
-                      }
-                      <span className={`font-semibold ${getPercentageColor(report["Volume Change 30 Days (%)"])}`}>
+                      )}
+                      <span
+                        className={`font-semibold ${getPercentageColor(
+                          report["Volume Change 30 Days (%)"]
+                        )}`}
+                      >
                         {formatPercentage(report["Volume Change 30 Days (%)"])}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-1">
-                      {(report["Volume Change Pre-Post 30 Days (%)"] || 0) >= 0 ? 
-                        <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" /> : 
+                      {(report["Volume Change Pre-Post 30 Days (%)"] || 0) >=
+                      0 ? (
+                        <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
+                      ) : (
                         <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
-                      }
-                      <span className={`font-semibold ${getPercentageColor(report["Volume Change Pre-Post 30 Days (%)"])}`}>
-                        {formatPercentage(report["Volume Change Pre-Post 30 Days (%)"])}
+                      )}
+                      <span
+                        className={`font-semibold ${getPercentageColor(
+                          report["Volume Change Pre-Post 30 Days (%)"]
+                        )}`}
+                      >
+                        {formatPercentage(
+                          report["Volume Change Pre-Post 30 Days (%)"]
+                        )}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
-                      onClick={() => toggleRowExpansion(report["Report Number"])}
+                      onClick={() =>
+                        toggleRowExpansion(report["Report Number"])
+                      }
                       className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
                     >
                       <EyeIcon className="h-4 w-4" />
@@ -250,43 +308,71 @@ export default function EnhancedMetricsTable({
                     </button>
                   </td>
                 </tr>
-                
+
                 {/* Expanded Row */}
                 {expandedRows.has(report["Report Number"]) && (
                   <tr className="bg-blue-50">
                     <td colSpan="7" className="px-6 py-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="bg-white rounded-lg p-4">
-                          <h4 className="font-medium text-gray-900 mb-2">Volume Metrics</h4>
+                          <h4 className="font-medium text-gray-900 mb-2">
+                            Volume Metrics
+                          </h4>
                           <div className="space-y-2">
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Avg Volume 5D:</span>
-                              <span className="text-sm font-medium">{report["Avg Volume Post 5 Days"]?.toLocaleString() || "0"}</span>
+                              <span className="text-sm text-gray-600">
+                                Avg Volume 5D:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {report[
+                                  "Avg Volume Post 5 Days"
+                                ]?.toLocaleString() || "0"}
+                              </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Avg Volume 10D:</span>
-                              <span className="text-sm font-medium">{report["Avg Volume Post 10 Days"]?.toLocaleString() || "0"}</span>
+                              <span className="text-sm text-gray-600">
+                                Avg Volume 10D:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {report[
+                                  "Avg Volume Post 10 Days"
+                                ]?.toLocaleString() || "0"}
+                              </span>
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="bg-white rounded-lg p-4">
-                          <h4 className="font-medium text-gray-900 mb-2">Company Info</h4>
+                          <h4 className="font-medium text-gray-900 mb-2">
+                            Company Info
+                          </h4>
                           <div className="space-y-2">
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Company:</span>
-                              <span className="text-sm font-medium">{getCompanyName()}</span>
+                              <span className="text-sm text-gray-600">
+                                Company:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {getCompanyName()}
+                              </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Ticker:</span>
-                              <span className="text-sm font-medium font-mono text-blue-600">{ticker}</span>
+                              <span className="text-sm text-gray-600">
+                                Ticker:
+                              </span>
+                              <span className="text-sm font-medium font-mono text-blue-600">
+                                {ticker}
+                              </span>
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="bg-white rounded-lg p-4">
-                          <h4 className="font-medium text-gray-900 mb-2">Full Report Title</h4>
-                          <p className="text-sm text-gray-700">{report["Report Title"]}</p>
+                          <h4 className="font-medium text-gray-900 mb-2">
+                            Full Report Title
+                          </h4>
+                          <p className="text-sm text-gray-700">
+                            {report["Report Title"]}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -319,15 +405,15 @@ export default function EnhancedMetricsTable({
               {metricsData.length !== 1 ? "s" : ""} performance
             </p>
           </div>
-          
+
           <div className="flex items-center gap-3 mt-4 sm:mt-0">
             {/* View Mode Toggle */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("table")}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === "table" 
-                    ? "bg-white text-gray-900 shadow-sm" 
+                  viewMode === "table"
+                    ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
@@ -336,8 +422,8 @@ export default function EnhancedMetricsTable({
               <button
                 onClick={() => setViewMode("cards")}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === "cards" 
-                    ? "bg-white text-gray-900 shadow-sm" 
+                  viewMode === "cards"
+                    ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
@@ -348,7 +434,7 @@ export default function EnhancedMetricsTable({
             <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
               {metricsData.length} Reports
             </span>
-            
+
             <button
               onClick={exportData}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors gap-2"

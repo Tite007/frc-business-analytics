@@ -49,8 +49,5 @@ module.exports = {
     },
   },
   darkMode: "class",
-  plugins: [
-    heroui(),
-    require('@tailwindcss/line-clamp'),
-  ],
+  plugins: [heroui(), require("@tailwindcss/line-clamp")],
 };
