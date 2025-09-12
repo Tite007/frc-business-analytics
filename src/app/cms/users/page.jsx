@@ -12,16 +12,11 @@ import {
   CheckIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import toast, { Toaster } from "react-hot-toast";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
-// Helper function to safely join URLs
-const joinUrl = (base, path) => {
-  const baseUrl = base.endsWith("/") ? base.slice(0, -1) : base;
-  const apiPath = path.startsWith("/") ? path : `/${path}`;
-  return `${baseUrl}${apiPath}`;
-};
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -67,77 +62,31 @@ export default function UsersPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      // Try to fetch from real backend API first
-      const response = await fetch(joinUrl(API_BASE_URL, "/api/auth/users"), {
-        headers,
-      });
+      // Fetch from simplified API endpoint
+      const response = await fetch(`${API_BASE_URL}/api/users`, { headers });
       const data = await response.json();
 
-      // Handle the actual API response structure
-      const usersArray = data.users || data || [];
+      // Handle both success and error responses
+      if (response.ok && data.data) {
+        // Success response with user data
+        const usersArray = data.data || [];
+        const safeUsersArray = Array.isArray(usersArray) ? usersArray : [];
+        console.log("📋 Users found:", safeUsersArray.length);
 
-      setUsers(usersArray);
-      setIsConnectedToRealAPI(true);
+        setUsers(safeUsersArray);
+        setIsConnectedToRealAPI(true);
+      } else {
+        // Handle error response (MongoDB connection issues)
+        console.error("Users API Error:", data);
+        toast.error(`MongoDB connection issue: ${data.error || 'Users endpoint temporarily unavailable'}`);
+        setUsers([]);
+        setIsConnectedToRealAPI(false);
+      }
     } catch (error) {
       console.error("Error fetching users from backend API:", error);
-
-      // Fallback to mock data
-      const mockUsers = [
-        {
-          _id: "1",
-          email: "tsanchez0@researchfrc.com",
-          name: "Test",
-          last_name: "User",
-          position: "System Administrator",
-          phone: "+1-555-0101",
-          role: "admin",
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_login: new Date().toISOString(),
-        },
-        {
-          _id: "2",
-          email: "btang@researchfrc.com",
-          name: "Brian",
-          last_name: "Tang",
-          position: "Financial Analyst",
-          phone: "+1-555-0102",
-          role: "user",
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_login: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          _id: "3",
-          email: "sidr@researchfrc.com",
-          name: "Sid",
-          last_name: "Rajeev",
-          position: "Research Manager",
-          phone: "+1-555-0103",
-          role: "analyst",
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_login: new Date(Date.now() - 172800000).toISOString(),
-        },
-        {
-          _id: "4",
-          email: "m.morales@researchfrc.com",
-          name: "Martin",
-          last_name: "Morales",
-          position: "Data Analyst",
-          phone: "+1-555-0104",
-          role: "user",
-          is_active: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_login: null,
-        },
-      ];
-
-      setUsers(mockUsers);
+      toast.error("Failed to fetch users from backend API");
+      
+      setUsers([]);
       setIsConnectedToRealAPI(false);
     } finally {
       setLoading(false);
@@ -174,7 +123,6 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
 
     if (!userId) {
       alert("Error: User ID not found. Cannot delete user.");
@@ -183,31 +131,32 @@ export default function UsersPage() {
 
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(
-        joinUrl(API_BASE_URL, `/api/auth/users/${userId}`),
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
 
       if (response.ok) {
         // Filter out the deleted user using both possible ID fields
         setUsers(
           users.filter((user) => user._id !== userId && user.id !== userId)
         );
+        toast.success("User deleted successfully!");
+      } else if (response.status === 405) {
+        // Method Not Allowed - deletion not implemented on backend
+        toast.error("User deletion is not available yet. This feature is being developed.");
+        console.log("Delete endpoint not implemented on backend (405 Method Not Allowed)");
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Failed to delete user:", errorData);
-        alert(
-          `Failed to delete user: ${errorData.message || response.statusText}`
-        );
+        console.error("Failed to delete user:", result);
+        toast.error(result.message || result.error || "Failed to delete user");
       }
     } catch (error) {
       console.error("Error deleting user:", error);
-      alert(`Error deleting user: ${error.message}`);
+      toast.error("Failed to delete user. Please try again.");
     }
   };
 
@@ -234,7 +183,7 @@ export default function UsersPage() {
         password: "[HIDDEN]",
       });
 
-      const response = await fetch(joinUrl(API_BASE_URL, "/api/auth/users"), {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -243,7 +192,10 @@ export default function UsersPage() {
         body: JSON.stringify(userData),
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (response.ok && result.data) {
+        toast.success("User created successfully!");
         setShowAddModal(false);
         setFormData({
           name: "",
@@ -257,28 +209,12 @@ export default function UsersPage() {
         });
         await fetchUsers(); // Refresh data
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Failed to add user:", errorData);
-        console.error("Response status:", response.status);
-        console.error("Response statusText:", response.statusText);
-
-        // Show detailed error message
-        let errorMessage = "Failed to add user";
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail
-            .map(
-              (err) => `${err.loc ? err.loc.join(".") : "Field"}: ${err.msg}`
-            )
-            .join("\n");
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-
-        alert(`Failed to add user:\n${errorMessage}`);
+        console.error("Failed to add user:", result);
+        toast.error(result.message || result.error || "Failed to create user");
       }
     } catch (error) {
       console.error("Error adding user:", error);
-      alert(`Error adding user: ${error.message}`);
+      toast.error("Failed to create user. Please try again.");
     }
   };
 
@@ -316,45 +252,39 @@ export default function UsersPage() {
 
       console.log("Sending update data:", updateData);
 
-      const response = await fetch(
-        joinUrl(API_BASE_URL, `/api/auth/users/${userId}`),
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(updateData),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const result = await response.json();
 
       if (response.ok) {
+        toast.success("User updated successfully!");
         setShowEditModal(false);
         setSelectedUser(null);
+        setFormData({
+          name: "",
+          last_name: "",
+          email: "",
+          position: "",
+          phone: "",
+          role: "user",
+          is_active: true,
+          password: "",
+        });
         await fetchUsers(); // Refresh data
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Failed to update user:", errorData);
-        console.error("Response status:", response.status);
-        console.error("Response statusText:", response.statusText);
-
-        // Show detailed error message
-        let errorMessage = "Failed to update user";
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail
-            .map(
-              (err) => `${err.loc ? err.loc.join(".") : "Field"}: ${err.msg}`
-            )
-            .join("\n");
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-
-        alert(`Failed to update user:\n${errorMessage}`);
+        console.error("Failed to update user:", result);
+        toast.error(result.message || "Failed to update user");
       }
     } catch (error) {
       console.error("Error updating user:", error);
-      alert(`Error updating user: ${error.message}`);
+      toast.error("Failed to update user. Please try again.");
     }
   };
 
@@ -426,33 +356,39 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      {/* API Connection Status */}
+      {/* Real MongoDB API Connection Status */}
       {isConnectedToRealAPI ? (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center">
             <div className="text-green-500 mr-3">✅</div>
             <div>
               <h3 className="text-sm font-medium text-green-800">
-                Real API Connected
+                Real MongoDB Database Connected
               </h3>
               <p className="text-sm text-green-700">
-                Connected to FRC backend API at {API_BASE_URL}. Displaying live
-                data from your database.
+                Connected to FRC backend API at {API_BASE_URL}. 
+                <br />
+                <strong>Database:</strong> MongoDB frc_analytics.users collection
+                <br />
+                <strong>Status:</strong> Displaying your actual {users.length} real users
               </p>
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center">
-            <div className="text-amber-500 mr-3">⚠️</div>
+            <div className="text-red-500 mr-3">❌</div>
             <div>
-              <h3 className="text-sm font-medium text-amber-800">
-                API Connection Issue
+              <h3 className="text-sm font-medium text-red-800">
+                MongoDB Database Connection Failed
               </h3>
-              <p className="text-sm text-amber-700">
-                Cannot connect to backend API at {API_BASE_URL}. Using fallback
-                data for development.
+              <p className="text-sm text-red-700">
+                Cannot connect to backend API at {API_BASE_URL}.
+                <br />
+                <strong>Issue:</strong> SSL certificate problem or MongoDB connection error
+                <br />
+                <strong>Expected:</strong> 6 real users from frc_analytics.users collection
               </p>
             </div>
           </div>
@@ -1212,7 +1148,7 @@ export default function UsersPage() {
                     handleDeleteUser(userId);
                     setShowDeleteModal(false);
                   } else {
-                    alert("Error: User ID not found. Cannot delete user.");
+                    toast.error("Error: User ID not found. Cannot delete user.");
                   }
                 }}
                 className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors"
@@ -1229,6 +1165,25 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            theme: {
+              primary: 'green',
+              secondary: 'black',
+            },
+          },
+        }}
+      />
     </div>
   );
 }

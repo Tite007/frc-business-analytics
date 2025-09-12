@@ -21,8 +21,8 @@ export function AuthProvider({ children }) {
 
   // Call backend directly since CORS is fixed
   const BACKEND_URL =
-    process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com";
-  const API_BASE_URL = `${BACKEND_URL}/api/auth`;
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 
   useEffect(() => {
     // Check for existing session on mount
@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
 
   const verifyToken = async (token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/me`, {
+      const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -47,7 +47,8 @@ export function AuthProvider({ children }) {
       });
 
       if (response.ok) {
-        const userData = await response.json();
+        const result = await response.json();
+        const userData = result.data || result;
         setUser(userData);
         setIsAuthenticated(true);
       } else {
@@ -68,7 +69,10 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
 
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      console.log("🔧 AuthContext - Sending login request to:", `${BACKEND_URL}/api/auth/login`);
+      console.log("🔧 AuthContext - Request body:", { email, password: "[HIDDEN]" });
+
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -76,10 +80,16 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      console.log("🔧 AuthContext - Response status:", response.status);
+      console.log("🔧 AuthContext - Response headers:", Object.fromEntries(response.headers.entries()));
 
-      if (response.ok && data.success) {
-        const { access_token, user: userData } = data;
+      const data = await response.json();
+      console.log("🔧 AuthContext - Response data:", data);
+
+      // Check if response is successful (status 200) and has correct data format
+      if (response.ok && data.data && data.data.access_token) {
+        // Handle the correct backend response format
+        const { access_token, user: userData } = data.data;
 
         setUser(userData);
         setIsAuthenticated(true);
@@ -90,9 +100,10 @@ export function AuthProvider({ children }) {
 
         return { success: true, user: userData };
       } else {
+        // Handle error response
         return {
           success: false,
-          message: data.message || data.detail || "Invalid email or password",
+          message: data.message || data.error || "Invalid email or password",
         };
       }
     } catch (error) {
@@ -112,7 +123,7 @@ export function AuthProvider({ children }) {
 
       if (token) {
         // Call logout endpoint
-        await fetch(`${API_BASE_URL}/logout`, {
+        await fetch(`${BACKEND_URL}/api/auth/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -142,7 +153,7 @@ export function AuthProvider({ children }) {
         return { success: false, message: "Not authenticated" };
       }
 
-      const response = await fetch(`${API_BASE_URL}/profile`, {
+      const response = await fetch(`${BACKEND_URL}/api/auth/profile`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,

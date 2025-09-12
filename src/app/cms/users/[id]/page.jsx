@@ -13,6 +13,9 @@ import {
 import Link from "next/link";
 import { format } from "date-fns";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -28,11 +31,23 @@ export default function UserDetailPage() {
 
   const fetchUser = async (userId) => {
     try {
-      const response = await fetch(`/api/auth/users/${userId}`);
+      const token = localStorage.getItem("authToken");
+      
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+        headers
+      });
       const data = await response.json();
 
-      if (data.success) {
-        setUser(data.user);
+      if (response.ok && data.data) {
+        setUser(data.data);
       } else {
         setError(data.message || "Failed to fetch user");
       }
@@ -48,10 +63,13 @@ export default function UserDetailPage() {
     if (!user) return;
 
     try {
-      const response = await fetch(`/api/auth/users/${user._id}`, {
+      const token = localStorage.getItem("authToken");
+      
+      const response = await fetch(`${API_BASE_URL}/api/users/${user._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           ...user,
@@ -61,7 +79,7 @@ export default function UserDetailPage() {
 
       const data = await response.json();
 
-      if (data.success) {
+      if (response.ok) {
         setUser((prev) => ({ ...prev, is_active: !prev.is_active }));
       } else {
         alert("Failed to update user status");
@@ -83,8 +101,13 @@ export default function UserDetailPage() {
     }
 
     try {
-      const response = await fetch(`/api/auth/users/${user._id}`, {
+      const token = localStorage.getItem("authToken");
+      
+      const response = await fetch(`${API_BASE_URL}/api/users/${user._id}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {

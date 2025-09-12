@@ -12,7 +12,7 @@ const getBaseURL = () => {
   console.log("NEXT_PUBLIC_BACKEND_URL value:", envURL);
   console.log("Type of envURL:", typeof envURL);
 
-  const fallbackURL = "https://dashboard.researchfrc.com";
+  const fallbackURL = "http://localhost:8000";
 
   // Handle various edge cases
   if (!envURL || envURL.trim() === "") {
@@ -172,7 +172,18 @@ export async function getCompanies(filters = {}) {
     return response.data;
   } catch (error) {
     console.error("Error fetching companies:", error);
-    return null;
+    console.error("URL attempted:", url);
+    console.error("Full error details:", error.response || error);
+    
+    // Return empty result structure to prevent crashes
+    return {
+      success: false,
+      companies: [],
+      total_companies: 0,
+      error: error.response?.status === 404 
+        ? "Companies endpoint not available (404)" 
+        : `API Error: ${error.message}`,
+    };
   }
 }
 

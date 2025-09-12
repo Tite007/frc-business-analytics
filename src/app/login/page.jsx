@@ -37,25 +37,18 @@ function LoginForm() {
     setLoading(true);
     setError("");
 
+    console.log("🔧 Login attempt with callbackUrl:", callbackUrl);
     const result = await login(email, password);
+    console.log("🔧 Login result:", result);
 
     if (result.success) {
-      // Check if user is trying to access CMS
-      if (callbackUrl.includes("/cms")) {
-        if (result.user.role === "admin") {
-          router.push(callbackUrl);
-        } else {
-          setError("Access denied. Only administrators can access the CMS.");
-          setLoading(false);
-          return;
-        }
-      } else {
-        router.push(callbackUrl);
-      }
+      console.log("🔧 Login success, redirecting to:", callbackUrl);
+      // Let the useEffect handle the redirect to avoid conflicts
+      // The useEffect will trigger when isAuthenticated becomes true
     } else {
       setError(result.message || "Login failed");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

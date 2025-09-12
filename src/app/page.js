@@ -19,7 +19,9 @@ export default function Home() {
       try {
         setLoading(true);
         const response = await getCompanies();
-        if (response && response.companies) {
+        
+        // Check if we got a successful response with companies data
+        if (response && response.success && response.companies && Array.isArray(response.companies)) {
           const companies = response.companies;
           const us = companies.filter(
             (c) =>
@@ -38,9 +40,25 @@ export default function Home() {
             canadianCompanies: canada.length,
             companiesWithReports: withReports.length,
           });
+        } else {
+          // Handle case where companies API is not available
+          console.log("Companies API not available, using fallback data");
+          setStats({
+            totalCompanies: 0,
+            usCompanies: 0,
+            canadianCompanies: 0,
+            companiesWithReports: 0,
+          });
         }
       } catch (error) {
         console.error("Error fetching stats:", error);
+        // Set fallback stats on error
+        setStats({
+          totalCompanies: 0,
+          usCompanies: 0,
+          canadianCompanies: 0,
+          companiesWithReports: 0,
+        });
       } finally {
         setLoading(false);
       }
