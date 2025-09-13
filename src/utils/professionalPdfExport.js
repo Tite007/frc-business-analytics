@@ -930,7 +930,7 @@ export async function exportProfessionalCompanyReport(
       pdf.setFontSize(11);
       pdf.setFont("helvetica", "bold");
       pdf.text(
-        "🤖 FRC AI-Powered Investment Intelligence",
+        "FRC AI-Powered Investment Intelligence",
         margin + 6,
         currentY + 8
       );
@@ -943,16 +943,24 @@ export async function exportProfessionalCompanyReport(
 
       let analysisText = "";
 
-      // Extract analysis from data
+      // Extract analysis from data with debugging
+      console.log("DEBUG: analysisData received:", analysisData);
       if (analysisData) {
         if (typeof analysisData === "string") {
           analysisText = analysisData;
+          console.log("DEBUG: Using string analysisData");
+        } else if (analysisData.ai_analysis) {
+          analysisText = analysisData.ai_analysis;
+          console.log("DEBUG: Using analysisData.ai_analysis");
         } else if (analysisData.analysis) {
           analysisText = analysisData.analysis;
+          console.log("DEBUG: Using analysisData.analysis");
         } else if (analysisData.summary) {
           analysisText = analysisData.summary;
+          console.log("DEBUG: Using analysisData.summary");
         }
       }
+      console.log("DEBUG: Final analysisText before cleaning:", analysisText?.substring(0, 100));
 
       // Professional analysis if none available
       if (!analysisText || analysisText.trim().length === 0) {
@@ -982,17 +990,17 @@ Standard market volatility and sector-specific factors should be evaluated along
 Our proprietary algorithms analyze institutional trading patterns, research readership metrics, and volume impact correlations to provide comprehensive investment intelligence.`;
       }
 
-      // W3C-compliant clean text formatting with proper spacing
+      // Minimal cleaning - preserve original structure but fix encoding
       const cleanText = analysisText
-        .replace(/\*\*/g, "") // Remove markdown formatting
-        .replace(/[*•–—-]{2,}/g, "•") // Replace multiple dashes/bullets with single bullet
-        .replace(/\n\n+/g, "\n\n") // Normalize paragraph breaks
-        .replace(/([•-])\s*([•-])/g, "$1") // Remove duplicate bullets
+        .replace(/\*\*(.*?)\*\*/g, "$1") // Remove markdown bold formatting  
+        .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters that cause encoding issues
         .trim();
 
       const paragraphs = cleanText
         .split("\n\n")
         .filter((p) => p.trim().length > 0);
+      
+      console.log("DEBUG: Cleaned text:", cleanText.substring(0, 200));
 
       paragraphs.forEach((paragraph) => {
         checkPageSpace(12);
@@ -1000,18 +1008,18 @@ Our proprietary algorithms analyze institutional trading patterns, research read
         const trimmedParagraph = paragraph.trim();
         const lines = trimmedParagraph.split("\n");
 
-        // Check if this is a section header
+        // Check if this is a section header with markdown formatting
         const isHeader =
-          lines[0].toUpperCase() === lines[0] &&
-          lines[0].endsWith(":") &&
-          lines[0].length < 50;
+          lines[0].includes("**") && lines[0].includes(":") ||
+          (lines[0].toUpperCase() === lines[0] && lines[0].endsWith(":") && lines[0].length < 50);
 
         if (isHeader && lines.length > 1) {
           // Section header with consistent spacing
           setColor(colors.primary);
           pdf.setFontSize(10);
           pdf.setFont("helvetica", "bold");
-          pdf.text(lines[0], margin + 2, currentY);
+          const headerText = lines[0].replace(/\*\*/g, "").trim();
+          pdf.text(headerText, margin + 2, currentY);
           currentY += 8;
 
           // Section content with proper line spacing
@@ -1025,22 +1033,24 @@ Our proprietary algorithms analyze institutional trading patterns, research read
 
             checkPageSpace(6);
 
-            if (line.startsWith("•") || line.startsWith("-")) {
-              // Bullet points with consistent indentation
+            if (line.startsWith("-") || line.startsWith("•")) {
+              // Bullet points with proper indentation - preserve original dash structure
               const bulletText = line.substring(1).trim();
-              const textLines = pdf.splitTextToSize(
-                bulletText,
-                contentWidth - 20
-              );
+              const textLines = pdf.splitTextToSize(bulletText, contentWidth - 20);
+
+              // Determine indentation level based on leading spaces
+              const leadingSpaces = lines[i].length - lines[i].trimStart().length;
+              const indentLevel = Math.min(Math.floor(leadingSpaces / 2), 3); // Max 3 levels
+              const indent = margin + 6 + (indentLevel * 8);
 
               // Bullet symbol
               setColor(colors.accent);
-              pdf.text("•", margin + 6, currentY);
+              pdf.text("•", indent, currentY);
 
               // Bullet content
               setColor([50, 50, 50]);
               textLines.forEach((textLine, idx) => {
-                pdf.text(textLine, margin + 12, currentY + idx * 5);
+                pdf.text(textLine, indent + 6, currentY + idx * 5);
               });
 
               currentY += textLines.length * 5 + 2;
@@ -1062,10 +1072,7 @@ Our proprietary algorithms analyze institutional trading patterns, research read
           pdf.setFontSize(9);
           pdf.setFont("helvetica", "normal");
 
-          const textLines = pdf.splitTextToSize(
-            trimmedParagraph,
-            contentWidth - 8
-          );
+          const textLines = pdf.splitTextToSize(trimmedParagraph, contentWidth - 8);
           textLines.forEach((line) => {
             checkPageSpace(6);
             pdf.text(line, margin + 4, currentY);
