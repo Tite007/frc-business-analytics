@@ -7,6 +7,7 @@ import ErrorState from "@/components/company/ErrorState";
 import BackNavigation from "@/components/company/BackNavigation";
 import CompanyHeader from "@/components/company/CompanyHeader";
 import ContentSections from "@/components/company/ContentSections";
+import PDFExportButton from "@/components/company/PDFExportButton";
 
 export default function CompanyPage() {
   const params = useParams();
@@ -34,6 +35,19 @@ export default function CompanyPage() {
     <div className="min-h-screen">
       <div className="xl:container mx-auto max-w-7xl">
         <BackNavigation />
+        
+        {/* Export Button - Positioned at top right */}
+        <div className="flex justify-end mb-4">
+          <PDFExportButton 
+            companyData={companyData}
+            chartData={chartData}
+            metricsData={metricsData}
+            analysisData={analysisData}
+            ticker={ticker}
+            className="shadow-lg"
+          />
+        </div>
+        
         <CompanyHeader companyData={companyData} ticker={ticker} />
         <ContentSections
           chartData={chartData}

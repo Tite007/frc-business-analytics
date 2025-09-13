@@ -22,7 +22,7 @@ export default function ChartComponent({
   }
 
   return (
-    <div className="mb-4">
+    <div className="mb-4" data-testid="chart-container">
       <h2 className="text-2xl font-semibold mb-2">Stock Performance</h2>
       <InteractiveChart
         chartData={chartData}
