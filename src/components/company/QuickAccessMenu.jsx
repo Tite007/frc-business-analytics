@@ -8,6 +8,8 @@ import {
   TableCellsIcon,
   DocumentChartBarIcon,
   EyeIcon,
+  ArrowTrendingUpIcon,
+  StarIcon,
 } from "@heroicons/react/24/outline";
 
 export default function QuickAccessMenu({
@@ -27,6 +29,21 @@ export default function QuickAccessMenu({
       icon: ChartBarIcon,
       available: hasChartData || hasMetricsData || hasAnalysisData,
       description: "Charts and quick metrics",
+    },
+    {
+      id: "frc-impact",
+      name: "FRC Impact Analysis",
+      icon: StarIcon,
+      available: true,
+      description: "Research coverage impact story",
+    },
+    {
+      id: "volume-correlation",
+      name: "Volume Correlation",
+      icon: ArrowTrendingUpIcon,
+      available: hasMetricsData,
+      description: "Volume behavior analysis",
+      count: totalReports,
     },
     {
       id: "metrics",

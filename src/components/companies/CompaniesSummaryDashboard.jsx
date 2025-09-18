@@ -3,7 +3,6 @@
 import {
   BuildingOfficeIcon,
   ChartBarIcon,
-  DocumentTextIcon,
   GlobeAmericasIcon,
   CurrencyDollarIcon,
   ArrowTrendingUpIcon,
@@ -18,24 +17,21 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
   // Calculate summary statistics
   const totalCompanies = companies.length;
   const digitalReports = companies.filter((c) => c.status === "success").length;
-  const pdfReports = companies.filter(
-    (c) => c.status === "frc_covered_no_digital_reports"
-  ).length;
-  const withReports = companies.filter(
-    (c) =>
-      (c.reports_count || 0) > 0 ||
-      c.status === "frc_covered_no_digital_reports"
-  ).length;
 
   const usCompanies = companies.filter(
-    (c) =>
-      c.exchange === "NASDAQ" ||
-      c.exchange === "NYSE" ||
-      c.exchange === "NYSE Arca"
+    (c) => {
+      const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+      return exchanges.some(ex =>
+        ex === "NASDAQ" || ex === "NYSE" || ex === "NYSE Arca" || ex === "New York Stock Exchange"
+      );
+    }
   ).length;
 
   const canadianCompanies = companies.filter(
-    (c) => c.exchange === "TSX" || c.exchange === "TSXV"
+    (c) => {
+      const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+      return exchanges.some(ex => ex === "TSX" || ex === "TSXV");
+    }
   ).length;
 
   const totalReports = companies.reduce(
@@ -43,6 +39,16 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
     0
   );
   const avgReportsPerCompany = totalReports / Math.max(digitalReports, 1);
+
+  // New metrics for enhanced data
+  const withCharts = companies.filter(c => c.has_chart).length;
+  const withMetrics = companies.filter(c => c.has_metrics).length;
+  const frcCovered = companies.filter(c => c.frc_covered).length;
+  const totalStockDataPoints = companies.reduce(
+    (sum, company) => sum + (company.stock_data_points || 0),
+    0
+  );
+  const companiesWithStockData = companies.filter(c => (c.stock_data_points || 0) > 0).length;
 
   const metrics = [
     {
@@ -63,20 +69,37 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
       percentage: Math.round((digitalReports / totalCompanies) * 100),
     },
     {
-      title: "PDF Reports",
-      value: pdfReports,
-      icon: DocumentTextIcon,
-      color: "yellow",
-      description: "Available through FRC",
+      title: "Charts Available",
+      value: withCharts,
+      icon: ChartBarIcon,
+      color: "emerald",
+      description: "Companies with chart data",
       format: "number",
-      percentage: Math.round((pdfReports / totalCompanies) * 100),
+      percentage: Math.round((withCharts / totalCompanies) * 100),
+    },
+    {
+      title: "Metrics Available",
+      value: withMetrics,
+      icon: ArrowTrendingUpIcon,
+      color: "indigo",
+      description: "Volume correlation analysis",
+      format: "number",
+      percentage: Math.round((withMetrics / totalCompanies) * 100),
+    },
+    {
+      title: "Stock Data Points",
+      value: totalStockDataPoints.toLocaleString(),
+      icon: GlobeAmericasIcon,
+      color: "orange",
+      description: "Total data points across all companies",
+      format: "string",
     },
     {
       title: "Coverage Rate",
-      value: Math.round((withReports / totalCompanies) * 100),
-      icon: ArrowTrendingUpIcon,
+      value: Math.round((frcCovered / totalCompanies) * 100),
+      icon: EyeIcon,
       color: "purple",
-      description: "Companies with reports",
+      description: "FRC research coverage",
       format: "percentage",
     },
   ];
@@ -126,7 +149,7 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
         {metrics.map((metric, index) => (
           <div
             key={index}
@@ -145,6 +168,12 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
                       ? "text-yellow-600"
                       : metric.color === "purple"
                       ? "text-purple-600"
+                      : metric.color === "emerald"
+                      ? "text-emerald-600"
+                      : metric.color === "indigo"
+                      ? "text-indigo-600"
+                      : metric.color === "orange"
+                      ? "text-orange-600"
                       : "text-blue-600"
                   }`}
                 >

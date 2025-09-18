@@ -13,6 +13,8 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   ExclamationTriangleIcon,
+  BuildingOfficeIcon,
+  StarIcon,
 } from "@heroicons/react/24/outline";
 
 import ChartComponent from "@/components/ChartComponent";
@@ -20,10 +22,15 @@ import TableComponent from "@/components/TableComponent";
 import AnalysisComponent from "@/components/AnalysisComponent";
 import BloombergReadershipTable from "@/components/BloombergReadershipTable";
 import BloombergAnalysis from "@/components/BloombergAnalysis";
+import StockReportChart from "@/components/charts/StockReportChart";
 import EnhancedMetricsTable from "./EnhancedMetricsTable";
 import DataSummaryDashboard from "./DataSummaryDashboard";
 import MobileDataControls from "./MobileDataControls";
 import QuickAccessMenu from "./QuickAccessMenu";
+import VolumeCorrelationDashboard from "./VolumeCorrelationDashboard";
+import VolumeTimelineChart from "./VolumeTimelineChart";
+import VolumeCorrelationHeatmap from "./VolumeCorrelationHeatmap";
+import FRCImpactDashboard from "../companies/FRCImpactDashboard";
 
 export default function EnhancedDashboard({
   chartData,
@@ -158,6 +165,18 @@ export default function EnhancedDashboard({
       name: "Overview",
       icon: ChartBarIcon,
       count: null,
+    },
+    {
+      id: "frc-impact",
+      name: "FRC Impact Analysis",
+      icon: StarIcon,
+      count: null,
+    },
+    {
+      id: "volume-correlation",
+      name: "Volume Correlation",
+      icon: ArrowTrendingUpIcon,
+      count: getTotalReports(),
     },
     {
       id: "metrics",
@@ -336,23 +355,32 @@ export default function EnhancedDashboard({
 
         {/* Tab Content */}
         <div className="p-4 lg:p-6">
+          {activeTab === "frc-impact" && (
+            <div className="space-y-6">
+              <FRCImpactDashboard
+                company={{
+                  ticker: ticker,
+                  company_name: getCompanyName(),
+                  exchange: getExchange(),
+                  currency: getCurrency(),
+                  status: companyData.status || "unknown",
+                  reports_count: getTotalReports(),
+                  stock_data_points: companyData.data_quality?.stock_data_points || companyData.stock_data_points || 0,
+                  has_chart: hasChartData,
+                  has_metrics: hasMetricsData,
+                  frc_covered: companyData.frc_covered || companyData.company_data?.frc_covered || false,
+                  analysis_date: companyData.analysis_date,
+                  first_report_date: companyData.data?.reports_summary?.reports_list?.[0]?.published_date,
+                  last_report_date: companyData.data?.reports_summary?.reports_list?.[companyData.data?.reports_summary?.reports_list?.length - 1]?.published_date,
+                }}
+              />
+            </div>
+          )}
+
           {activeTab === "overview" && (
             <div className="space-y-6 lg:space-y-8">
-              {/* Chart Component */}
-              {hasChartData && (
-                <div className="bg-gray-50 rounded-lg p-4 lg:p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Price Chart
-                  </h3>
-                  <ChartComponent
-                    chartData={chartData}
-                    ticker={ticker}
-                    companyName={getCompanyName()}
-                    exchange={getExchange()}
-                    currency={getCurrency()}
-                  />
-                </div>
-              )}
+              {/* Interactive Stock Chart with Report Markers */}
+              <StockReportChart ticker={ticker} />
 
               {/* Quick Metrics Overview */}
               {hasMetricsData && (
@@ -382,6 +410,39 @@ export default function EnhancedDashboard({
                   </p>
                   <p className="text-gray-400 text-sm mt-4">
                     We're continuously expanding our coverage. Check back soon!
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "volume-correlation" && (
+            <div className="space-y-6">
+              {hasMetricsData ? (
+                <>
+                  <VolumeCorrelationDashboard
+                    metricsData={metricsData}
+                    ticker={ticker}
+                    companyData={companyData}
+                  />
+                  <VolumeTimelineChart
+                    metricsData={metricsData}
+                    chartData={chartData}
+                    ticker={ticker}
+                  />
+                  <VolumeCorrelationHeatmap
+                    metricsData={metricsData}
+                    ticker={ticker}
+                  />
+                </>
+              ) : (
+                <div className="text-center py-16">
+                  <ArrowTrendingUpIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg font-medium">
+                    No volume correlation data available for this company.
+                  </p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Volume correlation analysis requires metrics data.
                   </p>
                 </div>
               )}

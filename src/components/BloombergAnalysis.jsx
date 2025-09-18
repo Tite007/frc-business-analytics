@@ -143,6 +143,8 @@ const BloombergAnalysis = ({ ticker }) => {
   const topCountries = analysisData.top_countries || [];
   const topInstitutions = analysisData.top_institutions || [];
   const keyInsights = analysisData.key_insights || [];
+  const readingTimeline = analysisData.reading_timeline || {};
+  const embargoSystem = analysisData.embargo_system || {};
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -170,71 +172,99 @@ const BloombergAnalysis = ({ ticker }) => {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Enhanced Stats Grid */}
       <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center bg-white rounded-lg p-4 shadow-sm">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="text-center bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
             <div className="text-2xl font-bold text-blue-600">
               {stats.total_records || 0}
             </div>
             <div className="text-sm text-gray-600">Total Reads</div>
+            <div className="text-xs text-gray-400 mt-1">Terminal Activity</div>
           </div>
 
-          <div className="text-center bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-2xl font-bold text-red-600">
-              {stats.embargoed_count || 0}
+          <div className="text-center bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+            <div className="text-2xl font-bold text-purple-600">
+              {stats.unique_institutions || 0}
             </div>
-            <div className="text-sm text-gray-600">
-              Embargoed ({stats.embargoed_percentage || 0}%)
-            </div>
+            <div className="text-sm text-gray-600">Institutions</div>
+            <div className="text-xs text-gray-400 mt-1">Unique Readers</div>
           </div>
 
-          <div className="text-center bg-white rounded-lg p-4 shadow-sm">
+          <div className="text-center bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
             <div className="text-2xl font-bold text-green-600">
               {stats.revealed_count || 0}
             </div>
             <div className="text-sm text-gray-600">
               Revealed ({stats.revealed_percentage || 0}%)
             </div>
+            <div className="text-xs text-gray-400 mt-1">Public Data</div>
           </div>
 
-          <div className="text-center bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-2xl font-bold text-purple-600">
-              {stats.unique_institutions || 0}
+          <div className="text-center bg-white rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
+            <div className="text-2xl font-bold text-orange-600">
+              {stats.embargoed_count || 0}
             </div>
-            <div className="text-sm text-gray-600">Institutions</div>
+            <div className="text-sm text-gray-600">
+              Embargoed ({stats.embargoed_percentage?.toFixed(1) || 0}%)
+            </div>
+            <div className="text-xs text-gray-400 mt-1">Recent Activity</div>
+          </div>
+
+          <div className="text-center bg-white rounded-lg p-4 shadow-sm border-l-4 border-indigo-500">
+            <div className="text-2xl font-bold text-indigo-600">
+              {topCountries.length || 0}
+            </div>
+            <div className="text-sm text-gray-600">Countries</div>
+            <div className="text-xs text-gray-400 mt-1">Global Reach</div>
           </div>
         </div>
+
+        {/* Embargo System Info */}
+        {embargoSystem.description && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center text-sm text-blue-800">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+              <span className="font-medium">Embargo System:</span>
+              <span className="ml-2">{embargoSystem.description}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Top Countries and Institutions */}
       <div className="px-8 py-6 border-b border-gray-200">
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Top Countries */}
+          {/* Enhanced Top Countries */}
           <div>
             <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              🌍 Top Countries
+              🌍 Geographic Distribution
             </h4>
             <div className="space-y-3">
-              {topCountries.slice(0, 5).map((country, index) => (
-                <div key={index} className="flex items-center justify-between">
+              {topCountries.slice(0, 8).map((country, index) => (
+                <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-600 mr-3">
                       {index + 1}
                     </div>
-                    <span className="font-medium">{country.country}</span>
+                    <div>
+                      <div className="font-medium text-gray-900">{country.country}</div>
+                      {country.code && country.code !== country.country && (
+                        <div className="text-xs text-gray-500">{country.code}</div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-600 mr-2">
+                    <span className="text-sm text-gray-600 mr-3 min-w-fit">
                       {country.count} reads
                     </span>
-                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full"
-                        style={{ width: `${country.percentage || 0}%` }}
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(country.percentage || 0, 100)}%` }}
                       ></div>
                     </div>
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 ml-2 min-w-fit">
                       {country.percentage || 0}%
                     </span>
                   </div>
@@ -243,42 +273,107 @@ const BloombergAnalysis = ({ ticker }) => {
             </div>
           </div>
 
-          {/* Top Institutions */}
+          {/* Enhanced Top Institutions */}
           <div>
             <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              🏛️ Top Institutions
+              🏛️ Leading Institutions
             </h4>
             <div className="space-y-3">
-              {topInstitutions.slice(0, 5).map((institution, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-sm font-medium text-green-600 mr-3">
-                      {index + 1}
+              {topInstitutions.length > 0 ? (
+                topInstitutions.slice(0, 6).map((institution, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex items-center flex-1">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-sm font-medium text-green-600 mr-3">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate pr-2" title={institution.institution}>
+                          {institution.institution}
+                        </div>
+                        <div className="text-xs text-gray-500">Revealed Institution</div>
+                      </div>
                     </div>
-                    <span className="font-medium text-sm truncate max-w-32">
-                      {institution.institution}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-600 mr-2">
-                      {institution.count} reads
-                    </span>
-                    <div className="w-16 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-600 h-2 rounded-full"
-                        style={{ width: `${institution.percentage || 0}%` }}
-                      ></div>
+                    <div className="flex items-center ml-2">
+                      <span className="text-sm text-gray-600 mr-2">
+                        {institution.count} reads
+                      </span>
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(institution.percentage || 0, 100)}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-500 ml-2">
-                      {institution.percentage || 0}%
-                    </span>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🔒</div>
+                  <p className="text-sm">Institution data under embargo</p>
+                  <p className="text-xs text-gray-400 mt-1">Details will be revealed after 30-day period</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Reading Timeline */}
+      {Object.keys(readingTimeline).length > 0 && (
+        <div className="px-8 py-6 border-b border-gray-200">
+          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            📈 Reading Activity Timeline
+          </h4>
+          <div className="space-y-4">
+            {/* Timeline Chart */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-end justify-between h-32 space-x-1">
+                {Object.entries(readingTimeline)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .slice(-12) // Show last 12 months
+                  .map(([month, count]) => {
+                    const maxCount = Math.max(...Object.values(readingTimeline));
+                    const height = Math.max((count / maxCount) * 100, 5);
+                    return (
+                      <div key={month} className="flex flex-col items-center group">
+                        <div
+                          className="bg-indigo-500 rounded-t hover:bg-indigo-600 transition-colors cursor-pointer w-6"
+                          style={{ height: `${height}%` }}
+                          title={`${month}: ${count} reads`}
+                        ></div>
+                        <div className="text-xs text-gray-500 mt-1 transform rotate-45 origin-left whitespace-nowrap">
+                          {month}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Timeline Summary */}
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="text-lg font-bold text-indigo-600">
+                  {Object.keys(readingTimeline).length}
+                </div>
+                <div className="text-sm text-gray-600">Active Months</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="text-lg font-bold text-indigo-600">
+                  {Math.max(...Object.values(readingTimeline))}
+                </div>
+                <div className="text-sm text-gray-600">Peak Month</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="text-lg font-bold text-indigo-600">
+                  {Math.round(Object.values(readingTimeline).reduce((a, b) => a + b, 0) / Object.keys(readingTimeline).length)}
+                </div>
+                <div className="text-sm text-gray-600">Avg/Month</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Key Insights */}
       {keyInsights.length > 0 && (

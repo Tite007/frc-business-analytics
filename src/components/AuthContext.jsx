@@ -27,43 +27,24 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Check for existing session on mount
     const token = localStorage.getItem("authToken");
+    const storedUserData = localStorage.getItem("userData");
 
-    if (token) {
-      // Verify token with API
-      verifyToken(token);
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  const verifyToken = async (token) => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        const userData = result.data || result;
+    if (token && storedUserData) {
+      try {
+        // Use stored data directly since we don't have a working /auth/me endpoint
+        const userData = JSON.parse(storedUserData);
         setUser(userData);
         setIsAuthenticated(true);
-      } else {
-        // Token is invalid, remove it
+        console.log("Restored authentication from localStorage");
+      } catch (error) {
+        console.error("Error parsing stored user data:", error);
         localStorage.removeItem("authToken");
         localStorage.removeItem("userData");
       }
-    } catch (error) {
-      console.error("Token verification error:", error);
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("userData");
-    } finally {
-      setLoading(false);
     }
-  };
+    setLoading(false);
+  }, []);
+
 
   const login = async (email, password) => {
     try {

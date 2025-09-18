@@ -13,6 +13,7 @@ import {
   GlobeAmericasIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import FRCCoverageTimelineCard from "./FRCCoverageTimelineCard";
 
 export default function EnhancedCompaniesTable({
   companies,
@@ -46,6 +47,14 @@ export default function EnhancedCompaniesTable({
         case "reports_count":
           aVal = a.reports_count || 0;
           bVal = b.reports_count || 0;
+          break;
+        case "analysis_date":
+          aVal = new Date(a.analysis_date || 0);
+          bVal = new Date(b.analysis_date || 0);
+          break;
+        case "stock_data_points":
+          aVal = a.stock_data_points || 0;
+          bVal = b.stock_data_points || 0;
           break;
         default:
           aVal = a[sortBy] || "";
@@ -99,14 +108,18 @@ export default function EnhancedCompaniesTable({
 
   const exportData = () => {
     const csvContent = [
-      ["Company", "Ticker", "Exchange", "Currency", "Status", "Reports Count"],
+      ["Company", "Ticker", "Exchange", "Currency", "Status", "Reports Count", "Stock Data Points", "Has Chart", "Has Metrics", "Analysis Date"],
       ...sortedCompanies.map((company) => [
         company.company_name,
         company.ticker,
-        company.exchange,
+        Array.isArray(company.exchange) ? company.exchange.join(";") : company.exchange,
         company.currency,
         company.status,
         company.reports_count || 0,
+        company.stock_data_points || 0,
+        company.has_chart ? "Yes" : "No",
+        company.has_metrics ? "Yes" : "No",
+        company.analysis_date || "N/A"
       ]),
     ]
       .map((row) => row.map((cell) => `"${cell}"`).join(","))
@@ -305,14 +318,11 @@ export default function EnhancedCompaniesTable({
 
   // Card View Component
   const CardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {paginatedCompanies.map((company) => {
-        const statusInfo = getStatusInfo(company);
-        return (
-          <div
-            key={company.ticker}
-            className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden"
-          >
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {paginatedCompanies.map((company) => (
+        <div key={company.ticker} className="space-y-4">
+          {/* Company Info Header */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden">
             {/* Card Header */}
             <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white">
               <div className="flex justify-between items-start">
@@ -320,7 +330,9 @@ export default function EnhancedCompaniesTable({
                   <h3 className="font-bold text-lg truncate">
                     {company.ticker}
                   </h3>
-                  <p className="text-blue-100 text-sm">{company.exchange}</p>
+                  <p className="text-blue-100 text-sm">
+                    {Array.isArray(company.exchange) ? company.exchange.join(", ") : company.exchange}
+                  </p>
                 </div>
                 <span className="bg-white bg-opacity-20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
                   {company.currency}
@@ -343,41 +355,15 @@ export default function EnhancedCompaniesTable({
                 </p>
               </div>
 
-              {/* Status */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Status</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{statusInfo.icon}</span>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}
-                  >
-                    {statusInfo.text}
-                  </span>
-                </div>
-              </div>
-
-              {/* Reports Count */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Reports</span>
-                <span
-                  className={`font-semibold ${
-                    (company.reports_count || 0) > 0
-                      ? "text-green-600"
-                      : "text-gray-500"
-                  }`}
-                >
-                  {(company.reports_count || 0) > 0
-                    ? `${company.reports_count} reports`
-                    : "No reports"}
-                </span>
-              </div>
-
               {/* Action Button */}
               <div className="pt-2">{getActionButton(company)}</div>
             </div>
           </div>
-        );
-      })}
+
+          {/* FRC Coverage Timeline Card */}
+          <FRCCoverageTimelineCard company={company} />
+        </div>
+      ))}
     </div>
   );
 
@@ -450,8 +436,55 @@ export default function EnhancedCompaniesTable({
                 }}
               >
                 <div className="flex items-center gap-2">
+                  <DocumentTextIcon className="h-4 w-4" />
                   Reports
                   {sortBy === "reports_count" &&
+                    (sortOrder === "asc" ? (
+                      <ChevronUpIcon className="h-4 w-4" />
+                    ) : (
+                      <ChevronDownIcon className="h-4 w-4" />
+                    ))}
+                </div>
+              </th>
+              <th
+                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
+                onClick={() => {
+                  if (sortBy === "stock_data_points") {
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                  } else {
+                    setSortBy("stock_data_points");
+                    setSortOrder("desc");
+                  }
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <ChartBarIcon className="h-4 w-4" />
+                  Data Points
+                  {sortBy === "stock_data_points" &&
+                    (sortOrder === "asc" ? (
+                      <ChevronUpIcon className="h-4 w-4" />
+                    ) : (
+                      <ChevronDownIcon className="h-4 w-4" />
+                    ))}
+                </div>
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
+                Data Available
+              </th>
+              <th
+                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
+                onClick={() => {
+                  if (sortBy === "analysis_date") {
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                  } else {
+                    setSortBy("analysis_date");
+                    setSortOrder("desc");
+                  }
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  Last Updated
+                  {sortBy === "analysis_date" &&
                     (sortOrder === "asc" ? (
                       <ChevronUpIcon className="h-4 w-4" />
                     ) : (
@@ -489,7 +522,7 @@ export default function EnhancedCompaniesTable({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {company.exchange}
+                        {Array.isArray(company.exchange) ? company.exchange.join(", ") : company.exchange}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -502,7 +535,7 @@ export default function EnhancedCompaniesTable({
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       <span
                         className={`font-semibold ${
                           (company.reports_count || 0) > 0
@@ -510,10 +543,52 @@ export default function EnhancedCompaniesTable({
                             : "text-gray-500"
                         }`}
                       >
-                        {(company.reports_count || 0) > 0
-                          ? `${company.reports_count}`
-                          : "0"}
+                        {company.reports_count || 0}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <span
+                        className={`font-semibold ${
+                          (company.stock_data_points || 0) > 0
+                            ? "text-blue-600"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {company.stock_data_points || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center gap-1">
+                        {company.has_chart && (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium" title="Chart Available">
+                            📊
+                          </span>
+                        )}
+                        {company.has_metrics && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium" title="Metrics Available">
+                            📈
+                          </span>
+                        )}
+                        {company.frc_covered && (
+                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium" title="FRC Covered">
+                            ✅
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {company.analysis_date ? (
+                        <div>
+                          <div className="font-medium">
+                            {new Date(company.analysis_date).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(company.analysis_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">N/A</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-2">
@@ -536,19 +611,23 @@ export default function EnhancedCompaniesTable({
                   {/* Expanded Row */}
                   {expandedRows.has(company.ticker) && (
                     <tr className="bg-blue-50">
-                      <td colSpan="6" className="px-6 py-4">
+                      <td colSpan="9" className="px-6 py-4">
                         <div className="bg-white rounded-lg p-4">
                           <h4 className="font-medium text-gray-900 mb-3">
-                            Company Details
+                            Company Details - {company.company_name}
                           </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <h5 className="text-sm font-medium text-gray-700 mb-2">
                                 Status Information
                               </h5>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-gray-600 mb-2">
                                 {statusInfo.description}
                               </p>
+                              <div className="text-sm text-gray-600">
+                                <div>Status: <span className="font-medium">{company.status}</span></div>
+                                <div>FRC Covered: <span className="font-medium">{company.frc_covered ? "Yes" : "No"}</span></div>
+                              </div>
                             </div>
                             <div>
                               <h5 className="text-sm font-medium text-gray-700 mb-2">
@@ -558,7 +637,7 @@ export default function EnhancedCompaniesTable({
                                 <div>
                                   Exchange:{" "}
                                   <span className="font-medium">
-                                    {company.exchange}
+                                    {Array.isArray(company.exchange) ? company.exchange.join(", ") : company.exchange}
                                   </span>
                                 </div>
                                 <div>
@@ -568,11 +647,39 @@ export default function EnhancedCompaniesTable({
                                   </span>
                                 </div>
                                 <div>
-                                  Reports Available:{" "}
-                                  <span className="font-medium">
+                                  Ticker:{" "}
+                                  <span className="font-medium font-mono">
+                                    {company.ticker}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-700 mb-2">
+                                Data Availability
+                              </h5>
+                              <div className="text-sm text-gray-600 space-y-1">
+                                <div>
+                                  Reports:{" "}
+                                  <span className="font-medium text-green-600">
                                     {company.reports_count || 0}
                                   </span>
                                 </div>
+                                <div>
+                                  Stock Data Points:{" "}
+                                  <span className="font-medium text-blue-600">
+                                    {company.stock_data_points || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2">
+                                  {company.has_chart && <span className="text-green-600">📊 Charts</span>}
+                                  {company.has_metrics && <span className="text-blue-600">📈 Metrics</span>}
+                                </div>
+                                {company.analysis_date && (
+                                  <div className="text-xs text-gray-500 mt-2">
+                                    Last updated: {new Date(company.analysis_date).toLocaleString()}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>

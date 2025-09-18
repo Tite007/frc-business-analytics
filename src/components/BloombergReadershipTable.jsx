@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getBloombergInstitutional, getBloombergSummary } from "@/lib/api";
+import { getBloombergReadership, getBloombergSummary } from "@/lib/api";
 
 const BloombergReadershipTable = ({ ticker }) => {
   const [institutionalData, setInstitutionalData] = useState([]);
@@ -9,7 +9,7 @@ const BloombergReadershipTable = ({ ticker }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showEmbargoed, setShowEmbargoed] = useState(true);
-  const [sortField, setSortField] = useState("access_date");
+  const [sortField, setSortField] = useState("transaction_date");
   const [sortDirection, setSortDirection] = useState("desc");
 
   // Pagination state
@@ -29,11 +29,9 @@ const BloombergReadershipTable = ({ ticker }) => {
       setLoading(true);
       setError(null);
 
-      // Fetch ALL institutional data first (no pagination on server side)
-      const institutionalResponse = await getBloombergInstitutional(ticker, {
-        show_embargoed: showEmbargoed,
-        limit: 1000, // Get all records
-        offset: 0,
+      // Use the enhanced Bloomberg readership API
+      const institutionalResponse = await getBloombergReadership(ticker, {
+        include_embargoed: showEmbargoed,
         days: 90,
       });
 
@@ -59,37 +57,46 @@ const BloombergReadershipTable = ({ ticker }) => {
         }
       }
 
-      // If we have successful institutional data
-      if (institutionalResponse?.success && institutionalResponse?.data) {
-        const rawData = institutionalResponse.data.institutional_records || [];
+      // If we have successful Bloomberg readership data
+      if (institutionalResponse?.success) {
+        // Combine revealed and embargoed records based on user preference
+        let allRecords = [];
+
+        if (institutionalResponse.revealed_records) {
+          allRecords = [...institutionalResponse.revealed_records];
+        }
+
+        if (showEmbargoed && institutionalResponse.embargoed_records) {
+          allRecords = [...allRecords, ...institutionalResponse.embargoed_records];
+        }
 
         // Sort data to show revealed records first, then embargoed records
-        const sortedData = rawData.sort((a, b) => {
+        const sortedData = allRecords.sort((a, b) => {
           // Primary sort: revealed records first (is_embargoed: false first)
           if (a.is_embargoed !== b.is_embargoed) {
             return a.is_embargoed ? 1 : -1; // false (revealed) comes before true (embargoed)
           }
 
-          // Secondary sort: by access_date (newest first) within each group
-          const dateA = new Date(a.access_date);
-          const dateB = new Date(b.access_date);
+          // Secondary sort: by transaction_date (newest first) within each group
+          const dateA = new Date(a.transaction_date);
+          const dateB = new Date(b.transaction_date);
           return dateB - dateA;
         });
 
         setInstitutionalData(sortedData);
         setTotalRecords(sortedData.length); // Use actual data length for client-side pagination
 
-        // Use summary from institutional response if available
-        if (institutionalResponse.data.summary) {
-          setSummaryData(institutionalResponse.data.summary);
+        // Use summary from Bloomberg response
+        if (institutionalResponse.summary) {
+          setSummaryData(institutionalResponse.summary);
         }
 
         // Try to fetch summary data separately if not included in institutional response
-        if (!institutionalResponse.data.summary) {
+        if (!institutionalResponse.summary) {
           try {
             const summaryResponse = await getBloombergSummary(ticker);
-            if (summaryResponse?.success && summaryResponse?.data) {
-              setSummaryData(summaryResponse.data.summary);
+            if (summaryResponse?.success && summaryResponse?.summary) {
+              setSummaryData(summaryResponse.summary);
             }
           } catch (summaryErr) {
             // Summary endpoint failed, but we still have institutional data
@@ -137,7 +144,7 @@ const BloombergReadershipTable = ({ ticker }) => {
       let bValue = b[field];
 
       // Handle date sorting
-      if (field === "access_date") {
+      if (field === "transaction_date" || field === "post_date") {
         aValue = new Date(aValue);
         bValue = new Date(bValue);
       }
@@ -419,11 +426,11 @@ const BloombergReadershipTable = ({ ticker }) => {
                 </th>
                 <th
                   className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 cursor-pointer hover:bg-slate-600"
-                  onClick={() => sortData("report_title")}
+                  onClick={() => sortData("title")}
                 >
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-pink-400 rounded-full"></div>
-                    <span>Report Title {getSortIcon("report_title")}</span>
+                    <span>Report Title {getSortIcon("title")}</span>
                   </div>
                 </th>
                 <th
@@ -449,21 +456,21 @@ const BloombergReadershipTable = ({ ticker }) => {
                 </th>
                 <th
                   className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 cursor-pointer hover:bg-slate-600"
-                  onClick={() => sortData("access_date")}
+                  onClick={() => sortData("transaction_date")}
                 >
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-                    <span>Access Date {getSortIcon("access_date")}</span>
+                    <span>Access Date {getSortIcon("transaction_date")}</span>
                   </div>
                 </th>
                 <th
                   className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 cursor-pointer hover:bg-slate-600"
-                  onClick={() => sortData("report_published_date")}
+                  onClick={() => sortData("post_date")}
                 >
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-cyan-400 rounded-full"></div>
                     <span>
-                      Published Date {getSortIcon("report_published_date")}
+                      Published Date {getSortIcon("post_date")}
                     </span>
                   </div>
                 </th>
@@ -502,13 +509,13 @@ const BloombergReadershipTable = ({ ticker }) => {
                     <div className="max-w-xs">
                       <div
                         className="font-medium truncate"
-                        title={record.report_title}
+                        title={record.title}
                       >
-                        {record.report_title || "N/A"}
+                        {record.title || "N/A"}
                       </div>
-                      {record.report_authors && (
+                      {record.authors && (
                         <div className="text-xs text-gray-500">
-                          By: {record.report_authors}
+                          By: {record.authors}
                         </div>
                       )}
                     </div>
@@ -533,11 +540,11 @@ const BloombergReadershipTable = ({ ticker }) => {
                     {record.firm_number || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
-                    {formatDate(record.access_date)}
+                    {formatDate(record.transaction_date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
-                    {record.report_published_date
-                      ? formatDate(record.report_published_date)
+                    {record.post_date
+                      ? formatDate(record.post_date)
                       : "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">

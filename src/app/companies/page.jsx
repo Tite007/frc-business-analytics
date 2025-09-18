@@ -56,13 +56,34 @@ export default function CompaniesPage() {
     const canada = [];
 
     filtered.forEach((company) => {
-      if (
-        company.exchange === "NASDAQ" ||
-        company.exchange === "NYSE" ||
-        company.exchange === "NYSE Arca"
-      ) {
+      // Handle both array and string exchange formats
+      const exchanges = Array.isArray(company.exchange) ? company.exchange : [company.exchange];
+
+      // Check if any of the exchanges are US exchanges
+      const isUS = exchanges.some(exchange =>
+        exchange === "NASDAQ" ||
+        exchange === "NYSE" ||
+        exchange === "NYSE Arca" ||
+        exchange === "New York Stock Exchange" ||
+        exchange === "NASDAQ Global Market" ||
+        exchange === "NASDAQ Capital Market" ||
+        exchange === "AMEX" ||
+        exchange === "OTC"
+      );
+
+      // Check if any of the exchanges are Canadian exchanges
+      const isCanadian = exchanges.some(exchange =>
+        exchange === "TSX" ||
+        exchange === "TSXV" ||
+        exchange === "Toronto Stock Exchange" ||
+        exchange === "TSX Venture Exchange" ||
+        exchange === "CNQ" ||
+        exchange === "NEO"
+      );
+
+      if (isUS) {
         us.push(company);
-      } else if (company.exchange === "TSX" || company.exchange === "TSXV") {
+      } else if (isCanadian) {
         canada.push(company);
       }
     });
