@@ -91,15 +91,16 @@ const data = {
   },
   analysisData: "AI-generated investment analysis text...",
   bloombergData: {
-    revealed_records: [...], // Individual readership records
-    embargoed_records: [...], // Embargoed readership records
-    institutional_records: [...], // Fallback records array
+    revealed_records: [...], // Individual revealed readership records (Array of 104+ records)
+    embargoed_records: [...], // Individual embargoed readership records (Array of 43+ records)
+    institutional_records: [...], // Fallback records array (usually empty)
     summary: {
       total_records: 147,
       revealed_records: 104,
       embargoed_records: 43,
       unique_institutions: 66
-    }
+    },
+    analytics: {...} // Additional analytics data
   }
 }
 ```
@@ -175,23 +176,36 @@ const chartSelectors = [
 ```
 
 ### 5. Bloomberg Institutional Readership (`addBloombergSection`)
-**Purpose**: Show institutional readership data
+**Purpose**: Show detailed institutional readership data matching BloombergReadershipTable component
 
 **Data Processing**:
-1. Combine `revealed_records` and `embargoed_records`
-2. Group by institution for top 10 ranking
-3. Calculate total reads per institution
-4. Show summary statistics when individual records unavailable
+1. Combine `revealed_records` and `embargoed_records` arrays
+2. Sort records: revealed first, then by transaction_date (newest first)
+3. Show top 15 individual readership records with full details
+4. Display summary statistics from `summary` object
 
 **Features**:
 - Summary cards (Total Reads, Institutions, Embargoed, Revealed)
-- Top 10 institutions table with readership counts
-- Location information (country, city)
-- Recent report activity
-- Status indicators (Revealed/Mixed/Embargoed)
+- Individual readership records table with 6 columns:
+  - **Institution**: Company name with customer number
+  - **Report Title**: Report title with authors
+  - **Country**: Country with state information
+  - **City**: Customer city
+  - **Access Date**: Transaction date with published date
+  - **Status**: Revealed/Embargoed badges with color coding
+- Professional table design matching web component
+- Color-coded row backgrounds (green tint for revealed, yellow for embargoed)
+- Status badges with rounded rectangles
+- Footer summary with embargo rate percentage
+
+**Table Design**:
+- Dark header background ([51, 65, 85]) with white text
+- Alternating row colors with status-based tinting
+- Professional typography and spacing
+- Column widths: [40, 50, 22, 20, 25, 18]
 
 **Fallback Behavior**:
-When `institutional_records: []` is empty, shows summary message with aggregate statistics.
+When both `revealed_records` and `embargoed_records` are empty, shows summary message with aggregate statistics from `summary` object.
 
 ### 6. AI Analysis Section (`addAIAnalysisSection`)
 **Purpose**: Present AI-generated investment analysis
@@ -304,18 +318,20 @@ const priceChange30d = frc30.price_change_30_days_pct || report["Price Change 30
 ```
 
 ### BloombergReadershipTable Integration
-The PDF Bloomberg section matches the table component:
+The PDF Bloomberg section exactly matches the BloombergReadershipTable component design and functionality:
 
 **Shared Features**:
-- Data structure handling (`revealed_records` + `embargoed_records`)
-- Institution grouping and ranking
-- Summary statistics display
-- Status indicators (Revealed/Embargoed)
-- Location information display
+- Identical data structure handling (`revealed_records` + `embargoed_records`)
+- Same sorting logic: revealed records first, then by transaction_date
+- Matching table design with dark headers and color-coded rows
+- Same column structure and information display
+- Identical status indicators (Revealed/Embargoed badges)
+- Same location information display (country, state, city)
 
-**Data Processing**:
+**Data Processing (Identical to Component)**:
 ```javascript
-// Combine records like the component
+// Combine records exactly like the component
+let records = [];
 if (bloombergData.revealed_records) {
   records = [...bloombergData.revealed_records];
 }
@@ -323,21 +339,28 @@ if (bloombergData.embargoed_records) {
   records = [...records, ...bloombergData.embargoed_records];
 }
 
-// Group by institution
-const institutionGroups = {};
-records.forEach(record => {
-  const institution = record.customer_name || "Unknown Institution";
-  if (!institutionGroups[institution]) {
-    institutionGroups[institution] = {
-      name: institution,
-      total_reads: 0,
-      records: []
-    };
+// Sort exactly like the component
+const sortedRecords = records.sort((a, b) => {
+  // Primary sort: revealed records first (is_embargoed: false first)
+  if (a.is_embargoed !== b.is_embargoed) {
+    return a.is_embargoed ? 1 : -1; // false (revealed) comes before true (embargoed)
   }
-  institutionGroups[institution].records.push(record);
-  institutionGroups[institution].total_reads++;
+  // Secondary sort: by transaction_date (newest first) within each group
+  const dateA = new Date(a.transaction_date);
+  const dateB = new Date(b.transaction_date);
+  return dateB - dateA;
 });
+
+// Show top 15 records (component shows 20 per page by default)
+const limitedRecords = sortedRecords.slice(0, 15);
 ```
+
+**Visual Matching**:
+- Same header design with dark gradient background
+- Same color scheme for status badges
+- Same row alternating colors with status-based tinting
+- Same typography hierarchy and font sizes
+- Same information density and layout patterns
 
 ## Styling Guidelines
 
@@ -439,12 +462,16 @@ addFooter();
 4. Test html2canvas configuration
 
 #### Bloomberg Data Missing
-**Symptoms**: Bloomberg section not appearing
+**Symptoms**: Bloomberg section not appearing or empty table
 **Solutions**:
-1. Verify data structure in logs
-2. Check `summary.total_records` existence
-3. Ensure proper data extraction from API
-4. Test with both individual records and summary-only data
+1. Check PDFExportButton logs for data extraction:
+   - `Bloomberg readership response:` should show full API response
+   - `Bloomberg readership data fetched:` should show extracted data structure
+   - `Revealed records count:` and `Embargoed records count:` should show actual counts
+2. Verify data structure matches BloombergReadershipTable component expectations
+3. Ensure `revealed_records` and `embargoed_records` arrays are properly extracted
+4. Check `summary.total_records` existence for fallback behavior
+5. Verify API endpoint returns data in expected format: `searchResult.bloomberg_data`
 
 #### Performance Metrics Table Empty
 **Symptoms**: No metrics displayed
@@ -487,11 +514,16 @@ console.log('Data structure:', {
 ## Version History
 
 ### Current Version (Latest)
-- Enhanced Bloomberg institutional readership section
-- Top 10 institutions by readership count
-- Improved data coverage section
-- CompanyMetrics component integration
-- Professional design updates
+- **Bloomberg Individual Readership Table**: Complete redesign to match BloombergReadershipTable component
+  - Individual readership records display (top 15 records)
+  - 6-column table: Institution, Report Title, Country, City, Access Date, Status
+  - Color-coded rows (green for revealed, yellow for embargoed)
+  - Professional status badges with rounded rectangles
+  - Exact data processing match with web component
+- **Enhanced Data Extraction**: Fixed PDFExportButton to properly extract `revealed_records` and `embargoed_records`
+- **Improved Documentation**: Complete documentation update with troubleshooting guides
+- **CompanyMetrics Integration**: Enhanced data extraction from `_raw.frc_30_day_analysis`
+- **Professional Design Standards**: Consistent typography, colors, and layout patterns
 
 ### Previous Versions
 - Basic Bloomberg table implementation
@@ -517,6 +549,20 @@ console.log('Data structure:', {
 
 ---
 
-**Last Updated**: December 2024
+**Last Updated**: September 2024 (Bloomberg Individual Readership Table Update)
 **Maintained By**: FRC Business Analytics Team
 **Contact**: For questions or updates, refer to project documentation or team leads.
+
+## Quick Start for New Developers
+
+### Adding a New Bloomberg Record Field
+1. Update the data extraction in `PDFExportButton.jsx` lines 47-58
+2. Modify the table columns in `professionalPdfExport.js` lines 730-731
+3. Add the field display logic in the record processing loop lines 751-863
+4. Update this documentation with the new field
+
+### Debugging Bloomberg Data Issues
+1. Check browser console for PDFExportButton logs
+2. Verify `revealed_records` and `embargoed_records` counts are > 0
+3. Compare data structure with BloombergReadershipTable component
+4. Test with different tickers to isolate API vs. processing issues
