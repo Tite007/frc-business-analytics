@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import DataAvailabilityGrid from "./DataAvailabilityGrid";
 import QuickStatsBar from "./QuickStatsBar";
 
 export default function CompanyHeader({ companyData, ticker }) {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const getCompanyName = () => {
     return (
       companyData.company_name ||
@@ -130,8 +132,19 @@ export default function CompanyHeader({ companyData, ticker }) {
             {getDescription() && (
               <div className="mt-6 text-blue-100">
                 <p className="text-sm leading-relaxed max-w-4xl">
-                  {getDescription()}
+                  {isDescriptionExpanded
+                    ? getDescription()
+                    : `${getDescription().substring(0, 160)}${getDescription().length > 160 ? '...' : ''}`
+                  }
                 </p>
+                {getDescription().length > 160 && (
+                  <button
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    className="mt-2 text-blue-200 hover:text-white text-sm font-medium underline focus:outline-none"
+                  >
+                    {isDescriptionExpanded ? 'Read less' : 'Read more'}
+                  </button>
+                )}
               </div>
             )}
           </div>

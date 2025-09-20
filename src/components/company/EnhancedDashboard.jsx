@@ -605,7 +605,7 @@ export default function EnhancedDashboard({
           {activeTab === "bloomberg" && (
             <div className="space-y-6">
               <BloombergReadershipTable ticker={ticker} />
-              <BloombergAnalysis ticker={ticker} />
+            
             </div>
           )}
         </div>

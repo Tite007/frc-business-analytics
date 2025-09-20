@@ -494,7 +494,7 @@ export async function getBloombergReadership(
       queryParams.include_embargoed = options.include_embargoed;
     if (options.days) queryParams.days = options.days;
 
-    const response = await api.get(`/api/bloomberg/company/${ticker}`, {
+    const response = await api.get(`/api/proxy/bloomberg/company/${ticker}`, {
       params: queryParams,
     });
 
@@ -593,7 +593,7 @@ export async function getBloombergAnalytics(
     if (options.generate_if_missing)
       queryParams.generate_if_missing = options.generate_if_missing;
 
-    const response = await api.get(`/api/bloomberg/company/${ticker}`, {
+    const response = await api.get(`/api/proxy/bloomberg/company/${ticker}`, {
       params: queryParams,
     });
 
@@ -856,7 +856,7 @@ export async function getBloombergRawData(ticker, options = {}) {
     const queryParams = {};
     if (options.limit) queryParams.limit = Math.min(options.limit, 500); // Max 500 per docs
 
-    const response = await api.get(`/api/bloomberg/company/${ticker}/raw`, {
+    const response = await api.get(`/api/proxy/bloomberg/company/${ticker}/raw`, {
       params: queryParams,
     });
     return response.data;
@@ -877,7 +877,7 @@ export async function getBloombergSummary(ticker) {
 
 export async function getBloombergTrends(ticker, days = 90) {
   try {
-    const response = await api.get(`/api/bloomberg/company/${ticker}`, {
+    const response = await api.get(`/api/proxy/bloomberg/company/${ticker}`, {
       params: { days },
     });
     return response.data;
