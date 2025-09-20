@@ -44,12 +44,18 @@ export default function PDFExportButton({
           console.log('Bloomberg readership response:', bloombergResponse);
 
           if (bloombergResponse?.success && bloombergResponse?.data) {
+            // Extract the bloomberg_data from the response
+            const blombergData = bloombergResponse.data;
             fetchedBloombergData = {
-              summary: bloombergResponse.data.summary || {},
-              institutional_records: bloombergResponse.data.institutional_records || [],
-              analytics: bloombergResponse.data.analytics || {}
+              summary: blombergData.summary || {},
+              revealed_records: blombergData.revealed_records || [],
+              embargoed_records: blombergData.embargoed_records || [],
+              institutional_records: blombergData.institutional_records || [],
+              analytics: blombergData.analytics || {}
             };
             console.log('Bloomberg readership data fetched:', fetchedBloombergData);
+            console.log('Revealed records count:', fetchedBloombergData.revealed_records.length);
+            console.log('Embargoed records count:', fetchedBloombergData.embargoed_records.length);
           } else if (bloombergResponse?.isSecondaryTicker) {
             // Handle secondary ticker case
             console.log('Secondary ticker detected, Bloomberg data available under:', bloombergResponse.primaryTicker);
