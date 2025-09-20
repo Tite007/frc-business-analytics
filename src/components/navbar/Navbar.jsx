@@ -49,6 +49,12 @@ const Navbar = () => {
             >
               REPORTS
             </Link>
+            <Link
+              href="/bloomberg"
+              className="text-white hover:text-blue-300 transition-colors duration-200 font-medium"
+            >
+              BLOOMBERG
+            </Link>
           </div>
 
           {/* Right Section: CTA Buttons */}
@@ -111,6 +117,12 @@ const Navbar = () => {
               className="text-white hover:text-blue-300 transition-colors duration-200 font-medium py-2"
             >
               REPORTS
+            </Link>
+            <Link
+              href="/bloomberg"
+              className="text-white hover:text-blue-300 transition-colors duration-200 font-medium py-2"
+            >
+              BLOOMBERG
             </Link>
             <Link
               href="/sign-in"

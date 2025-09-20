@@ -21,7 +21,7 @@ export default function EnhancedMetricsTable({
   if (!metricsData || metricsData.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="text-gray-400 text-5xl mb-4">📊</div>
+     n    <div className="text-gray-400 text-5xl mb-4">📊</div>
         <p className="text-gray-500 text-lg font-medium">
           No metrics data available for this company.
         </p>
@@ -35,8 +35,8 @@ export default function EnhancedMetricsTable({
   const getCompanyName = () => {
     return (
       companyData.company_name ||
-      companyData.data?.company_profile?.name ||
       companyData.company_data?.name ||
+      companyData.data?.company_profile?.name ||
       ticker
     );
   };

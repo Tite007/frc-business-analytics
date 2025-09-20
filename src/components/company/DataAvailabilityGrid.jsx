@@ -1,33 +1,55 @@
 export default function DataAvailabilityGrid({ companyData }) {
+  const reportCount =
+    companyData.reports_count ||
+    companyData.data?.reports_summary?.total_reports ||
+    companyData.detailed_metrics?.length ||
+    companyData.reports?.length ||
+    0;
+
+  const stockDataCount =
+    companyData.stock_data_points ||
+    companyData.data?.stock_data?.length ||
+    companyData.data?.chart_data?.length ||
+    0;
+
   const availabilityItems = [
     {
       condition:
+        companyData.data_quality?.has_reports ||
         companyData.data_available?.has_reports ||
-        companyData.reports_count > 0 ||
-        companyData.data?.reports?.length > 0,
+        reportCount > 0,
       icon: "📄",
-      label: `Reports (${
-        companyData.reports?.length ||
-        companyData.reports_count ||
-        companyData.data?.reports?.length ||
-        0
-      })`,
-    },
-    {
-      condition: companyData.data_available?.has_chart || companyData.has_chart,
-      icon: "📊",
-      label: "Charts",
+      label: `Reports (${reportCount})`,
     },
     {
       condition:
-        companyData.data_available?.has_metrics || companyData.has_metrics,
-      icon: "📈",
-      label: "Metrics",
+        companyData.has_chart ||
+        companyData.data_quality?.has_chart ||
+        companyData.data_available?.has_chart ||
+        stockDataCount > 0,
+      icon: "📊",
+      label: `Charts (${stockDataCount} points)`,
     },
     {
-      condition: companyData.data_available?.has_ai_analysis,
+      condition:
+        companyData.has_metrics ||
+        companyData.data_quality?.has_metrics ||
+        companyData.data_available?.has_metrics ||
+        (companyData.detailed_metrics?.length > 0),
+      icon: "📈",
+      label: `Enhanced Metrics (${companyData.detailed_metrics?.length || 0})`,
+    },
+    {
+      condition:
+        companyData.ai_analysis ||
+        companyData.data_available?.has_ai_analysis,
       icon: "🤖",
       label: "AI Analysis",
+    },
+    {
+      condition: companyData.processing_summary?.companies_successful > 0,
+      icon: "⚡",
+      label: `Enhanced Calculation v${companyData.enhanced_calculation_version || '3.0'}`,
     },
   ];
 

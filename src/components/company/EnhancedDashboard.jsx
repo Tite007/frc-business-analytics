@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ChartBarIcon,
   TableCellsIcon,
@@ -22,12 +22,12 @@ import TableComponent from "@/components/TableComponent";
 import AnalysisComponent from "@/components/AnalysisComponent";
 import BloombergReadershipTable from "@/components/BloombergReadershipTable";
 import BloombergAnalysis from "@/components/BloombergAnalysis";
-import StockReportChart from "@/components/charts/StockReportChart";
 import EnhancedMetricsTable from "./EnhancedMetricsTable";
 import DataSummaryDashboard from "./DataSummaryDashboard";
 import MobileDataControls from "./MobileDataControls";
 import QuickAccessMenu from "./QuickAccessMenu";
 import VolumeCorrelationDashboard from "./VolumeCorrelationDashboard";
+import { getBloombergReadership } from "@/lib/api";
 import VolumeTimelineChart from "./VolumeTimelineChart";
 import VolumeCorrelationHeatmap from "./VolumeCorrelationHeatmap";
 import FRCImpactDashboard from "../companies/FRCImpactDashboard";
@@ -44,6 +44,7 @@ export default function EnhancedDashboard({
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
   const [showFilters, setShowFilters] = useState(false);
+  const [bloombergData, setBloombergData] = useState(null);
 
   // Helper functions
   const getCompanyName = () => {
@@ -113,6 +114,31 @@ export default function EnhancedDashboard({
       successRate: (positiveReports / totalReports) * 100,
     };
   }, [metricsData]);
+
+  // Fetch Bloomberg data
+  useEffect(() => {
+    const fetchBloombergData = async () => {
+      if (!ticker) return;
+
+      try {
+        const response = await getBloombergReadership(ticker, getCompanyName());
+        if (response.success && response.data) {
+          setBloombergData(response.data);
+        } else if (response.error) {
+          // Bloomberg data not available for this ticker - this is expected
+          setBloombergData(null);
+        }
+      } catch (error) {
+        // Only log errors that aren't 404s (expected when no data exists)
+        if (error.response?.status !== 404) {
+          console.error("Error fetching Bloomberg data:", error);
+        }
+        setBloombergData(null);
+      }
+    };
+
+    fetchBloombergData();
+  }, [ticker]);
 
   // Filter and sort data
   const filteredMetricsData = useMemo(() => {
@@ -194,7 +220,7 @@ export default function EnhancedDashboard({
       id: "bloomberg",
       name: "Bloomberg Data",
       icon: EyeIcon,
-      count: null,
+      count: bloombergData?.data?.summary?.unique_institutions || bloombergData?.summary?.unique_institutions || null,
     },
   ];
 
@@ -379,8 +405,24 @@ export default function EnhancedDashboard({
 
           {activeTab === "overview" && (
             <div className="space-y-6 lg:space-y-8">
-              {/* Interactive Stock Chart with Report Markers */}
-              <StockReportChart ticker={ticker} />
+              {/* FRC Impact Analysis */}
+              <FRCImpactDashboard
+                company={{
+                  ticker: ticker,
+                  company_name: getCompanyName(),
+                  exchange: getExchange(),
+                  currency: getCurrency(),
+                  status: companyData.status || "unknown",
+                  reports_count: getTotalReports(),
+                  stock_data_points: companyData.data_quality?.stock_data_points || companyData.stock_data_points || 0,
+                  has_chart: hasChartData,
+                  has_metrics: hasMetricsData,
+                  frc_covered: companyData.frc_covered || companyData.company_data?.frc_covered || false,
+                  analysis_date: companyData.analysis_date,
+                  first_report_date: companyData.data?.reports_summary?.reports_list?.[0]?.published_date,
+                  last_report_date: companyData.data?.reports_summary?.reports_list?.[companyData.data?.reports_summary?.reports_list?.length - 1]?.published_date,
+                }}
+              />
 
               {/* Quick Metrics Overview */}
               {hasMetricsData && (

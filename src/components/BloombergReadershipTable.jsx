@@ -42,12 +42,14 @@ const BloombergReadershipTable = ({ ticker }) => {
           errorMessage.includes("404") ||
           errorMessage.includes("not found") ||
           errorMessage.includes("Request failed with status code 404") ||
-          errorMessage.includes("Bloomberg readership endpoints not available")
+          errorMessage.includes("Bloomberg readership endpoints not available") ||
+          errorMessage.includes("No Bloomberg data found for ticker")
         ) {
           // Bloomberg endpoints not available - hide component
-          console.log("Bloomberg endpoints not available for", ticker);
+          console.log("Bloomberg data not available for", ticker);
           setInstitutionalData([]);
           setSummaryData(null);
+          setError(null); // Clear any error to hide component
           setLoading(false);
           return;
         } else {

@@ -105,16 +105,15 @@ export function useCompanyData(ticker) {
             : null,
         ]);
 
-        // Extract raw chart data - try multiple sources
+        // Extract raw chart data - try multiple sources (prioritize new structure)
         const rawChartData =
           chartResponse?.chart_data ||
+          fetchedCompanyData.data?.chart_data || // NEW: Prioritize chart_data from new API structure
+          fetchedCompanyData.data?.stock_data || // NEW: Use stock_data from new API structure
           fetchedCompanyData.chart_json ||
           fetchedCompanyData.chart_data ||
           fetchedCompanyData.data?.chart_json ||
-          fetchedCompanyData.data?.chart_data ||
-          fetchedCompanyData.data?.stock_data || // Use stock_data from MongoDB
           fetchedCompanyData.stock_data || // Direct stock_data property
-          fetchedCompanyData.data?.chart_data || // Try chart_data array from MongoDB
           // If chart endpoint returns empty, try comprehensive endpoint
           ((!chartResponse?.chart_data || Object.keys(chartResponse?.chart_data || {}).length === 0) &&
             (fetchedCompanyData.data?.stock_data || fetchedCompanyData.data?.chart_data));
@@ -125,10 +124,11 @@ export function useCompanyData(ticker) {
         // Debug logging
         console.log(`📊 Chart data sources for ${ticker}:`, {
           chartResponse: chartResponse?.chart_data ? "✅" : "❌",
-          chart_json: fetchedCompanyData.chart_json ? "✅" : "❌",
-          chart_data: fetchedCompanyData.chart_data ? "✅" : "❌",
-          nested_chart_data: fetchedCompanyData.data?.chart_data ? `✅ (${fetchedCompanyData.data?.chart_data?.length} records)` : "❌",
-          stock_data: fetchedCompanyData.data?.stock_data ? `✅ (${fetchedCompanyData.data?.stock_data?.length} records)` : "❌",
+          new_chart_data: fetchedCompanyData.data?.chart_data ? `✅ (${fetchedCompanyData.data?.chart_data?.length} records)` : "❌",
+          new_stock_data: fetchedCompanyData.data?.stock_data ? `✅ (${fetchedCompanyData.data?.stock_data?.length} records)` : "❌",
+          legacy_chart_json: fetchedCompanyData.chart_json ? "✅" : "❌",
+          legacy_chart_data: fetchedCompanyData.chart_data ? "✅" : "❌",
+          legacy_nested_chart_data: fetchedCompanyData.data?.chart_json ? "✅" : "❌",
           direct_stock_data: fetchedCompanyData.stock_data ? `✅ (${fetchedCompanyData.stock_data?.length} records)` : "❌",
           has_chart_flag: fetchedCompanyData.has_chart ? "✅" : "❌",
           data_quality_chart: fetchedCompanyData.data_quality?.has_chart ? "✅" : "❌",
@@ -194,6 +194,26 @@ export function useCompanyData(ticker) {
 
         // Extract and transform metrics data to match component expectations
         let fetchedMetricsData = null;
+
+        // Debug logging for metrics sources
+        console.log(`📊 Metrics data sources for ${ticker}:`, {
+          separate_metrics: metrics?.metrics ? `✅ (${metrics.metrics.length} reports)` : "❌",
+          detailed_metrics_root: fetchedCompanyData.detailed_metrics ? `✅ (${fetchedCompanyData.detailed_metrics.length} reports)` : "❌",
+          enhanced_metrics_v3: fetchedCompanyData.data?.enhanced_metrics_v3 ? `✅ (${fetchedCompanyData.data.enhanced_metrics_v3.length} reports)` : "❌",
+          performance_metrics: fetchedCompanyData.data?.performance_metrics?.detailed_metrics ? `✅ (${fetchedCompanyData.data.performance_metrics.detailed_metrics.length} reports)` : "❌",
+          has_metrics_flag: fetchedCompanyData.has_metrics ? "✅" : "❌",
+          data_quality_metrics: fetchedCompanyData.data_quality?.has_metrics ? "✅" : "❌"
+        });
+
+        // Additional debugging for metrics
+        if (fetchedCompanyData.detailed_metrics) {
+          console.log(`🔍 Root detailed metrics sample:`, fetchedCompanyData.detailed_metrics[0]);
+        }
+        if (fetchedCompanyData.data?.enhanced_metrics_v3) {
+          console.log(`🔍 Enhanced metrics v3 sample:`, fetchedCompanyData.data.enhanced_metrics_v3[0]);
+        }
+
+        // Priority order: 1) separate metrics endpoint, 2) detailed_metrics at root, 3) enhanced_metrics_v3 in data, 4) performance_metrics.detailed_metrics
         if (metrics?.metrics) {
           // Transform new metrics format to legacy format expected by components
           fetchedMetricsData = metrics.metrics.map((report) => ({
@@ -201,8 +221,32 @@ export function useCompanyData(ticker) {
             "Report Title": report.report_title,
             "Publication Date": report.publication_date,
             "Price on Release": report.frc_30_day_analysis?.price_on_release || 0,
-            "Volume Change 30 Days (%)": report.frc_30_day_analysis?.volume_spike_30_days_pct || 0,
+            "Price After 30 Days": report.frc_30_day_analysis?.price_after_30_days || 0,
+            "Volume Change 30 Days (%)": report.frc_30_day_analysis?.volume_change_30_days_pct || 0,
             "Volume Change Pre-Post 30 Days (%)": report.frc_30_day_analysis?.volume_change_pre_post_30_days_pct || 0,
+            "Avg Volume Pre 30 Days": report.frc_30_day_analysis?.avg_volume_pre_30_days || 0,
+            "Avg Volume Post 30 Days": report.frc_30_day_analysis?.avg_volume_post_30_days || 0,
+            "Avg Volume Post 5 Days": report.window_5_days?.avg_volume_post || 0,
+            "Avg Volume Post 10 Days": report.window_10_days?.avg_volume_post || 0,
+            "Price Change 30 Days (%)": report.frc_30_day_analysis?.price_change_30_days_pct || 0,
+            "Price Change 15 Days (%)": report.frc_15_day_analysis?.price_change_15_days_pct || 0,
+            "Volatility (%)": report.volatility_analysis?.annualized_volatility_pct || 0,
+            "Report Type": report.report_type || "digital",
+            // Add raw data for potential future use
+            _raw: report
+          }));
+        } else if (fetchedCompanyData.detailed_metrics) {
+          // NEW: Use detailed_metrics from root level (NEW API FORMAT)
+          fetchedMetricsData = fetchedCompanyData.detailed_metrics.map((report) => ({
+            "Report Number": report.report_id,
+            "Report Title": report.report_title,
+            "Publication Date": report.publication_date,
+            "Price on Release": report.frc_30_day_analysis?.price_on_release || 0,
+            "Price After 30 Days": report.frc_30_day_analysis?.price_after_30_days || 0,
+            "Volume Change 30 Days (%)": report.frc_30_day_analysis?.volume_change_30_days_pct || 0,
+            "Volume Change Pre-Post 30 Days (%)": report.frc_30_day_analysis?.volume_change_pre_post_30_days_pct || 0,
+            "Avg Volume Pre 30 Days": report.frc_30_day_analysis?.avg_volume_pre_30_days || 0,
+            "Avg Volume Post 30 Days": report.frc_30_day_analysis?.avg_volume_post_30_days || 0,
             "Avg Volume Post 5 Days": report.window_5_days?.avg_volume_post || 0,
             "Avg Volume Post 10 Days": report.window_10_days?.avg_volume_post || 0,
             "Price Change 30 Days (%)": report.frc_30_day_analysis?.price_change_30_days_pct || 0,
@@ -213,16 +257,40 @@ export function useCompanyData(ticker) {
             _raw: report
           }));
         } else if (fetchedCompanyData.data?.enhanced_metrics_v3) {
-          // Also check for enhanced_metrics_v3 in company data
+          // Use enhanced_metrics_v3 from company data (NEW FORMAT)
           fetchedMetricsData = fetchedCompanyData.data.enhanced_metrics_v3.map((report) => ({
             "Report Number": report.report_id,
             "Report Title": report.report_title,
             "Publication Date": report.publication_date,
             "Price on Release": report.frc_30_day_analysis?.price_on_release || 0,
-            "Volume Change 30 Days (%)": report.frc_30_day_analysis?.volume_spike_30_days_pct || 0,
+            "Price After 30 Days": report.frc_30_day_analysis?.price_after_30_days || 0,
+            "Volume Change 30 Days (%)": report.frc_30_day_analysis?.volume_change_30_days_pct || 0,
             "Volume Change Pre-Post 30 Days (%)": report.frc_30_day_analysis?.volume_change_pre_post_30_days_pct || 0,
-            "Avg Volume Post 5 Days": 0, // Not available in enhanced_metrics_v3
-            "Avg Volume Post 10 Days": 0, // Not available in enhanced_metrics_v3
+            "Avg Volume Pre 30 Days": report.frc_30_day_analysis?.avg_volume_pre_30_days || 0,
+            "Avg Volume Post 30 Days": report.frc_30_day_analysis?.avg_volume_post_30_days || 0,
+            "Avg Volume Post 5 Days": report.window_5_days?.avg_volume_post || 0,
+            "Avg Volume Post 10 Days": report.window_10_days?.avg_volume_post || 0,
+            "Price Change 30 Days (%)": report.frc_30_day_analysis?.price_change_30_days_pct || 0,
+            "Price Change 15 Days (%)": report.frc_15_day_analysis?.price_change_15_days_pct || 0,
+            "Volatility (%)": report.volatility_analysis?.annualized_volatility_pct || 0,
+            "Report Type": report.report_type || "digital",
+            // Add raw data for potential future use
+            _raw: report
+          }));
+        } else if (fetchedCompanyData.data?.performance_metrics?.detailed_metrics) {
+          // Fallback to performance_metrics.detailed_metrics (LEGACY FORMAT)
+          fetchedMetricsData = fetchedCompanyData.data.performance_metrics.detailed_metrics.map((report) => ({
+            "Report Number": report.report_id,
+            "Report Title": report.report_title,
+            "Publication Date": report.publication_date,
+            "Price on Release": report.frc_30_day_analysis?.price_on_release || 0,
+            "Price After 30 Days": report.frc_30_day_analysis?.price_after_30_days || 0,
+            "Volume Change 30 Days (%)": report.frc_30_day_analysis?.volume_change_30_days_pct || 0,
+            "Volume Change Pre-Post 30 Days (%)": report.frc_30_day_analysis?.volume_change_pre_post_30_days_pct || 0,
+            "Avg Volume Pre 30 Days": report.frc_30_day_analysis?.avg_volume_pre_30_days || 0,
+            "Avg Volume Post 30 Days": report.frc_30_day_analysis?.avg_volume_post_30_days || 0,
+            "Avg Volume Post 5 Days": report.window_5_days?.avg_volume_post || 0,
+            "Avg Volume Post 10 Days": report.window_10_days?.avg_volume_post || 0,
             "Price Change 30 Days (%)": report.frc_30_day_analysis?.price_change_30_days_pct || 0,
             "Price Change 15 Days (%)": report.frc_15_day_analysis?.price_change_15_days_pct || 0,
             "Volatility (%)": report.volatility_analysis?.annualized_volatility_pct || 0,
@@ -237,6 +305,16 @@ export function useCompanyData(ticker) {
           analysis?.ai_analysis ||
           fetchedCompanyData.data?.ai_analysis ||
           fetchedCompanyData.ai_analysis;
+
+        console.log(`📊 Final data summary for ${ticker}:`, {
+          chartData: fetchedChartData ? (fetchedChartData.data ? `Plotly format with ${fetchedChartData.data.length} traces` : 'Custom format') : "❌",
+          metricsData: fetchedMetricsData ? `✅ (${fetchedMetricsData.length} records)` : "❌",
+          analysisData: fetchedAnalysisData ? "✅" : "❌"
+        });
+
+        if (fetchedMetricsData && fetchedMetricsData.length > 0) {
+          console.log(`🔍 Transformed metrics sample:`, fetchedMetricsData[0]);
+        }
 
         setChartData(fetchedChartData);
         setMetricsData(fetchedMetricsData);

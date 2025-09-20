@@ -50,6 +50,9 @@ export async function getCompanyData(ticker, endpoint = "companies") {
       case "chart":
         url = `/api/frc/company/${ticker}/chart`;
         break;
+      case "chart-data":
+        url = `/api/frc/company/${ticker}/chart-data`;
+        break;
       case "stock":
         url = `/api/stock/${ticker}`;
         break;
@@ -103,7 +106,7 @@ export async function getCompanyData(ticker, endpoint = "companies") {
         return {
           success: true,
           metrics: response.data.detailed_metrics || [],
-          performance_summary: response.data.performance_summary
+          performance_summary: response.data.performance_summary,
         };
       }
     }
@@ -114,8 +117,15 @@ export async function getCompanyData(ticker, endpoint = "companies") {
         return {
           success: true,
           chart_data: response.data.chart_data || {},
-          chart_config: response.data.chart_config
+          chart_config: response.data.chart_config,
         };
+      }
+    }
+
+    // Handle chart-data endpoint (returns full chart data with reports)
+    if (endpoint === "chart-data") {
+      if (response.data.success) {
+        return response.data; // Return the full response as is
       }
     }
 
@@ -125,7 +135,7 @@ export async function getCompanyData(ticker, endpoint = "companies") {
         return {
           success: true,
           ai_analysis: response.data.ai_analysis || "",
-          analysis_metadata: response.data.analysis_metadata
+          analysis_metadata: response.data.analysis_metadata,
         };
       }
     }
@@ -181,6 +191,7 @@ export async function getStats() {
 
 // Get companies with filtering
 export async function getCompanies(filters = {}) {
+  let url;
   try {
     const params = new URLSearchParams();
 
@@ -196,7 +207,7 @@ export async function getCompanies(filters = {}) {
     if (filters.skip) params.append("skip", filters.skip);
     if (filters.search) params.append("search", filters.search);
 
-    const url = `/api/frc/companies${
+    url = `/api/frc/companies${
       params.toString() ? `?${params.toString()}` : ""
     }`;
     const response = await api.get(url);
@@ -205,17 +216,18 @@ export async function getCompanies(filters = {}) {
     return response.data;
   } catch (error) {
     console.error("Error fetching companies:", error);
-    console.error("URL attempted:", url);
+    console.error("URL attempted:", url || "URL not constructed");
     console.error("Full error details:", error.response || error);
-    
+
     // Return empty result structure to prevent crashes
     return {
       success: false,
       companies: [],
       total_companies: 0,
-      error: error.response?.status === 404 
-        ? "Companies endpoint not available (404)" 
-        : `API Error: ${error.message}`,
+      error:
+        error.response?.status === 404
+          ? "Companies endpoint not available (404)"
+          : `API Error: ${error.message}`,
     };
   }
 }
@@ -299,22 +311,30 @@ export async function getCurrentUser() {
 // Bloomberg API Health Check
 export async function getBloombergHealth() {
   try {
-    const response = await api.get('/api/bloomberg/health');
+    const response = await api.get("/api/bloomberg/health");
     return response.data;
   } catch (error) {
     console.error("Error fetching Bloomberg health:", error);
-    return { error: true, message: error.message, status: error.response?.status };
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
   }
 }
 
 // Bloomberg Statistics Overview
 export async function getBloombergStats() {
   try {
-    const response = await api.get('/api/bloomberg/stats');
+    const response = await api.get("/api/bloomberg/stats");
     return response.data;
   } catch (error) {
     console.error("Error fetching Bloomberg stats:", error);
-    return { error: true, message: error.message, status: error.response?.status };
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
   }
 }
 
@@ -325,50 +345,471 @@ export async function getBloombergCompanies(options = {}) {
     if (options.limit) queryParams.limit = options.limit;
     if (options.sort_by) queryParams.sort_by = options.sort_by;
 
-    const response = await api.get('/api/bloomberg/companies', { params: queryParams });
+    const response = await api.get("/api/bloomberg/companies", {
+      params: queryParams,
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching Bloomberg companies:", error);
-    return { error: true, message: error.message, status: error.response?.status };
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
   }
 }
 
-// Detailed Company Bloomberg Data
-export async function getBloombergReadership(ticker, options = {}) {
+// Cache for Bloomberg-enabled tickers (populated dynamically)
+let bloombergEnabledTickers = null;
+let bloombergCacheTime = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Get list of all tickers with Bloomberg data (dynamic)
+export async function getBloombergEnabledTickers() {
   try {
+    // Check cache first
+    const now = Date.now();
+    if (
+      bloombergEnabledTickers &&
+      bloombergCacheTime &&
+      now - bloombergCacheTime < CACHE_DURATION
+    ) {
+      return bloombergEnabledTickers;
+    }
+
+    // Fetch fresh data
+    const response = await api.get("/api/bloomberg/companies");
+    const companies = response.data?.companies || response.data || [];
+
+    // Extract ticker list and group by company name
+    const tickersByCompany = {};
+    const allTickers = [];
+
+    companies.forEach((company) => {
+      const ticker = company.ticker;
+      const companyName = company.company_name;
+
+      allTickers.push(ticker);
+
+      if (companyName) {
+        if (!tickersByCompany[companyName]) {
+          tickersByCompany[companyName] = [];
+        }
+        tickersByCompany[companyName].push(ticker);
+      }
+    });
+
+    // Cache the results
+    bloombergEnabledTickers = {
+      allTickers,
+      tickersByCompany,
+      companies,
+    };
+    bloombergCacheTime = now;
+
+    return bloombergEnabledTickers;
+  } catch (error) {
+    console.error("Error fetching Bloomberg enabled tickers:", error);
+    return {
+      allTickers: [],
+      tickersByCompany: {},
+      companies: [],
+    };
+  }
+}
+
+// Find primary ticker for a company (dynamic)
+export async function getBloombergPrimaryTicker(
+  companyName,
+  currentTicker = null
+) {
+  try {
+    const bloombergData = await getBloombergEnabledTickers();
+    const companyTickers = bloombergData.tickersByCompany[companyName] || [];
+
+    if (companyTickers.length === 0) {
+      return null; // No Bloomberg data for this company
+    }
+
+    if (companyTickers.length === 1) {
+      return companyTickers[0]; // Only one ticker, it's the primary
+    }
+
+    // Multiple tickers - use priority logic or current ticker if it has data
+    if (currentTicker && companyTickers.includes(currentTicker)) {
+      return currentTicker; // Current ticker has Bloomberg data
+    }
+
+    // Default to first ticker found (could be enhanced with exchange priority logic)
+    return companyTickers[0];
+  } catch (error) {
+    console.error("Error getting primary Bloomberg ticker:", error);
+    return null;
+  }
+}
+
+// Check if ticker has Bloomberg data (dynamic)
+export async function hasBloombergData(ticker) {
+  try {
+    const bloombergData = await getBloombergEnabledTickers();
+    return bloombergData.allTickers.includes(ticker);
+  } catch (error) {
+    console.error("Error checking Bloomberg data availability:", error);
+    return false;
+  }
+}
+
+// Bloomberg Readership Data (Dynamic approach)
+export async function getBloombergReadership(
+  ticker,
+  companyName = null,
+  options = {}
+) {
+  try {
+    // Check if current ticker has Bloomberg data
+    const hasData = await hasBloombergData(ticker);
+
+    if (!hasData && companyName) {
+      // Try to find primary ticker for this company
+      const primaryTicker = await getBloombergPrimaryTicker(
+        companyName,
+        ticker
+      );
+
+      if (primaryTicker && primaryTicker !== ticker) {
+        // This is a secondary ticker - return link to primary ticker's data
+        return {
+          success: false,
+          isSecondaryTicker: true,
+          primaryTicker: primaryTicker,
+          message: `Bloomberg readership data available for ${companyName} under ticker: ${primaryTicker}`,
+          linkMessage: `View Bloomberg data for ${primaryTicker}`,
+        };
+      }
+    }
+
+    // Try to fetch Bloomberg data for this ticker
     const queryParams = {};
-    if (options.include_embargoed !== undefined) queryParams.include_embargoed = options.include_embargoed;
+    if (options.include_embargoed !== undefined)
+      queryParams.include_embargoed = options.include_embargoed;
     if (options.days) queryParams.days = options.days;
 
-    const response = await api.get(`/api/bloomberg/company/${ticker}`, { params: queryParams });
-    return response.data;
+    const response = await api.get(`/api/bloomberg/company/${ticker}`, {
+      params: queryParams,
+    });
+
+    return {
+      success: true,
+      isPrimaryTicker: true,
+      data: response.data,
+    };
   } catch (error) {
     console.error("Error fetching Bloomberg readership:", error);
     const statusCode = error.response?.status;
-    const errorMessage = statusCode === 404
-      ? `Bloomberg readership endpoints not available (404)`
-      : error.message;
-    return { error: true, message: errorMessage, status: statusCode };
+
+    if (statusCode === 404 && companyName) {
+      // Try to find primary ticker for this company
+      const primaryTicker = await getBloombergPrimaryTicker(
+        companyName,
+        ticker
+      );
+
+      if (primaryTicker && primaryTicker !== ticker) {
+        return {
+          success: false,
+          isSecondaryTicker: true,
+          primaryTicker: primaryTicker,
+          message: `No Bloomberg data for ${ticker}. Available under ticker: ${primaryTicker}`,
+          linkMessage: `View Bloomberg data for ${primaryTicker}`,
+        };
+      }
+    }
+
+    const errorMessage = error.response?.data?.detail || error.message;
+    return {
+      error: true,
+      message:
+        statusCode === 404
+          ? `No Bloomberg readership data found for ticker '${ticker}'`
+          : errorMessage,
+      status: statusCode,
+    };
+  }
+}
+
+// Helper function to check if ticker is primary for Bloomberg (dynamic)
+export async function isBloombergPrimaryTicker(ticker, companyName) {
+  try {
+    const primaryTicker = await getBloombergPrimaryTicker(companyName, ticker);
+    return !primaryTicker || primaryTicker === ticker;
+  } catch (error) {
+    console.error("Error checking if ticker is primary:", error);
+    return true; // Default to true to avoid blocking
   }
 }
 
 // Legacy alias for getBloombergReadership (backward compatibility)
-export async function getBloombergInstitutional(ticker, options = {}) {
-  return await getBloombergReadership(ticker, options);
+export async function getBloombergInstitutional(
+  ticker,
+  companyName = null,
+  options = {}
+) {
+  return await getBloombergReadership(ticker, companyName, options);
 }
 
-// Bloomberg Analytics for Company
-export async function getBloombergAnalytics(ticker) {
+// Bloomberg Analytics/Summary Data (Dynamic approach)
+export async function getBloombergAnalytics(
+  ticker,
+  companyName = null,
+  options = {}
+) {
   try {
-    const response = await api.get(`/api/bloomberg/analytics/${ticker}`);
-    return response.data;
+    // Check if current ticker has Bloomberg data
+    const hasData = await hasBloombergData(ticker);
+
+    if (!hasData && companyName) {
+      // Try to find primary ticker for this company
+      const primaryTicker = await getBloombergPrimaryTicker(
+        companyName,
+        ticker
+      );
+
+      if (primaryTicker && primaryTicker !== ticker) {
+        // This is a secondary ticker - return link to primary ticker's data
+        return {
+          success: false,
+          isSecondaryTicker: true,
+          primaryTicker: primaryTicker,
+          message: `Bloomberg analytics available under ticker: ${primaryTicker}`,
+        };
+      }
+    }
+
+    // Use the working Bloomberg endpoint for analytics
+    const queryParams = {};
+    if (options.include_embargoed !== undefined)
+      queryParams.include_embargoed = options.include_embargoed;
+    if (options.days) queryParams.days = options.days;
+    if (options.generate_if_missing)
+      queryParams.generate_if_missing = options.generate_if_missing;
+
+    const response = await api.get(`/api/bloomberg/company/${ticker}`, {
+      params: queryParams,
+    });
+
+    return {
+      success: true,
+      isPrimaryTicker: true,
+      data: response.data,
+    };
   } catch (error) {
     console.error("Error fetching Bloomberg analytics:", error);
     const statusCode = error.response?.status;
-    const errorMessage = statusCode === 404
-      ? `Bloomberg analytics endpoint not available (404)`
-      : error.message;
+
+    if (statusCode === 404 && companyName) {
+      // Try to find primary ticker for this company
+      const primaryTicker = await getBloombergPrimaryTicker(
+        companyName,
+        ticker
+      );
+
+      if (primaryTicker && primaryTicker !== ticker) {
+        return {
+          success: false,
+          isSecondaryTicker: true,
+          primaryTicker: primaryTicker,
+          message: `Bloomberg analytics available under ticker: ${primaryTicker}`,
+        };
+      }
+    }
+
+    const errorMessage = error.response?.data?.detail || error.message;
+    return {
+      error: true,
+      message:
+        statusCode === 404
+          ? `No Bloomberg analytics data found for ticker '${ticker}'`
+          : errorMessage,
+      status: statusCode,
+    };
+  }
+}
+
+// Generate New Bloomberg Analysis
+export async function generateBloombergAnalysis(ticker) {
+  try {
+    const response = await api.post(
+      `/api/bloomberg/analysis/${ticker}/generate`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error generating Bloomberg analysis:", error);
+    const statusCode = error.response?.status;
+    const errorMessage =
+      statusCode === 404
+        ? `Cannot generate Bloomberg analysis for ticker '${ticker}'`
+        : error.response?.data?.detail || error.message;
     return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+// Get All Bloomberg Companies with Readership Data
+export async function getAllBloombergCompanies() {
+  try {
+    const response = await api.get("/api/bloomberg/companies");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg companies list:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// Get FRC Enriched Bloomberg Companies with matched names
+export async function getBloombergCompaniesEnriched() {
+  try {
+    const response = await api.get("/api/bloomberg/companies-frc-enriched");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg companies enriched:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// Get FRC Report Readership Analysis
+export async function getFRCReportReadership() {
+  try {
+    const response = await api.get("/api/bloomberg/frc-report-readership");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching FRC report readership:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// =============================================================================
+// NEW BLOOMBERG DASHBOARD API FUNCTIONS
+// =============================================================================
+
+// Bloomberg Dashboard Overview - KPI Cards and Summary
+export async function getBloombergDashboardOverview() {
+  try {
+    const response = await api.get("/api/bloomberg/dashboard/overview");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg dashboard overview:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// Bloomberg Top Companies - Chart-ready data with FRC indicators
+export async function getBloombergDashboardTopCompanies() {
+  try {
+    const response = await api.get("/api/bloomberg/dashboard/top-companies");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg top companies:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// Bloomberg FRC Metrics - FRC-specific analysis and charts
+export async function getBloombergDashboardFRCMetrics() {
+  try {
+    const response = await api.get("/api/bloomberg/dashboard/frc-metrics");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg FRC metrics:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// Bloomberg Geographic Distribution - World map and regional data
+export async function getBloombergDashboardGeographic() {
+  try {
+    const response = await api.get("/api/bloomberg/dashboard/geographic-distribution");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg geographic distribution:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// Bloomberg Trending Activity - Real-time activity feed
+export async function getBloombergDashboardTrending() {
+  try {
+    const response = await api.get("/api/bloomberg/dashboard/trending-activity");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg trending activity:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// =============================================================================
+// NEW PAGINATED REPORT APIS
+// =============================================================================
+
+// FRC Companies Reports - Paginated companies with their reports
+export async function getBloombergFRCCompaniesReports(params = {}) {
+  try {
+    const { page = 1, limit = 5 } = params;
+    const response = await api.get(`/api/bloomberg/dashboard/frc-companies-reports?page=${page}&limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching FRC companies reports:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
+  }
+}
+
+// Report Profiles - Paginated detailed report analysis
+export async function getBloombergReportProfiles(params = {}) {
+  try {
+    const { page = 1, limit = 20, sort_by = 'popularity' } = params;
+    const response = await api.get(`/api/bloomberg/dashboard/report-profiles?page=${page}&limit=${limit}&sort_by=${sort_by}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Bloomberg report profiles:", error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
   }
 }
 
@@ -379,11 +820,17 @@ export async function getBloombergInstitutions(options = {}) {
     if (options.limit) queryParams.limit = options.limit;
     if (options.country) queryParams.country = options.country;
 
-    const response = await api.get('/api/bloomberg/institutions', { params: queryParams });
+    const response = await api.get("/api/bloomberg/institutions", {
+      params: queryParams,
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching Bloomberg institutions:", error);
-    return { error: true, message: error.message, status: error.response?.status };
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
   }
 }
 
@@ -395,9 +842,10 @@ export async function getBloombergReports(ticker) {
   } catch (error) {
     console.error("Error fetching Bloomberg reports:", error);
     const statusCode = error.response?.status;
-    const errorMessage = statusCode === 404
-      ? `Bloomberg reports endpoint not available (404)`
-      : error.message;
+    const errorMessage =
+      statusCode === 404
+        ? `Bloomberg reports endpoint not available (404)`
+        : error.message;
     return { error: true, message: errorMessage, status: statusCode };
   }
 }
@@ -408,11 +856,17 @@ export async function getBloombergRawData(ticker, options = {}) {
     const queryParams = {};
     if (options.limit) queryParams.limit = Math.min(options.limit, 500); // Max 500 per docs
 
-    const response = await api.get(`/api/bloomberg/company/${ticker}/raw`, { params: queryParams });
+    const response = await api.get(`/api/bloomberg/company/${ticker}/raw`, {
+      params: queryParams,
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching Bloomberg raw data:", error);
-    return { error: true, message: error.message, status: error.response?.status };
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status,
+    };
   }
 }
 
@@ -445,7 +899,7 @@ export async function getBloombergAnalysis(ticker, options = {}) {
     // Get both analytics and readership data for comprehensive analysis
     const [analyticsResponse, readershipResponse] = await Promise.all([
       getBloombergAnalytics(ticker),
-      getBloombergReadership(ticker, { include_embargoed: true })
+      getBloombergReadership(ticker, { include_embargoed: true }),
     ]);
 
     // Handle analytics error
@@ -466,11 +920,15 @@ export async function getBloombergAnalysis(ticker, options = {}) {
     const analysisData = {
       stats: {
         total_records: analytics.total_reads || 0,
-        embargoed_count: Math.round((analytics.total_reads || 0) * (analytics.embargo_rate || 0) / 100),
+        embargoed_count: Math.round(
+          ((analytics.total_reads || 0) * (analytics.embargo_rate || 0)) / 100
+        ),
         revealed_count: analytics.revealed_reads || 0,
         embargoed_percentage: analytics.embargo_rate || 0,
         revealed_percentage: Math.round(100 - (analytics.embargo_rate || 0)),
-        unique_institutions: readership.summary?.unique_institutions || Object.keys(analytics.geographic_distribution || {}).length,
+        unique_institutions:
+          readership.summary?.unique_institutions ||
+          Object.keys(analytics.geographic_distribution || {}).length,
       },
 
       // Enhanced geographic analysis
@@ -479,7 +937,7 @@ export async function getBloombergAnalysis(ticker, options = {}) {
           country: getCountryName(country), // Helper to expand country codes
           code: country,
           count,
-          percentage: Math.round((count / (analytics.total_reads || 1)) * 100)
+          percentage: Math.round((count / (analytics.total_reads || 1)) * 100),
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 10), // Top 10 countries
@@ -490,11 +948,19 @@ export async function getBloombergAnalysis(ticker, options = {}) {
         .map((institution, index) => ({
           institution,
           count: readership.revealed_institutions?.length - index || 1,
-          percentage: Math.round(((readership.revealed_institutions?.length - index) / (readership.revealed_institutions?.length || 1)) * 100)
+          percentage: Math.round(
+            ((readership.revealed_institutions?.length - index) /
+              (readership.revealed_institutions?.length || 1)) *
+              100
+          ),
         })),
 
       // Enhanced insights
-      key_insights: generateBloombergInsights(analytics, interpretation, readership),
+      key_insights: generateBloombergInsights(
+        analytics,
+        interpretation,
+        readership
+      ),
 
       // Rich AI analysis
       ai_analysis: generateAIAnalysis(analytics, interpretation, readership),
@@ -503,22 +969,21 @@ export async function getBloombergAnalysis(ticker, options = {}) {
       reading_timeline: analytics.reading_timeline || {},
 
       // Additional metadata
-      analysis_date: new Date().toISOString().split('T')[0],
+      analysis_date: new Date().toISOString().split("T")[0],
       last_updated: analyticsResponse.timestamp || new Date().toISOString(),
-      embargo_system: readership.embargo_system || {}
+      embargo_system: readership.embargo_system || {},
     };
 
     return {
       success: true,
-      data: analysisData
+      data: analysisData,
     };
-
   } catch (error) {
     console.error("Error generating Bloomberg analysis:", error);
     return {
       error: true,
       message: error.message || "Failed to generate Bloomberg analysis",
-      status: error.response?.status
+      status: error.response?.status,
     };
   }
 }
@@ -526,11 +991,29 @@ export async function getBloombergAnalysis(ticker, options = {}) {
 // Helper function to expand country codes to full names
 function getCountryName(code) {
   const countryMap = {
-    'US': 'United States', 'CN': 'China', 'HK': 'Hong Kong', 'ENG': 'United Kingdom',
-    'SP': 'Spain', 'TI': 'Taiwan', 'IN': 'India', 'F': 'France', 'CND': 'Canada',
-    'CH': 'Switzerland', 'J': 'Japan', 'KS': 'South Korea', 'I': 'Italy', 'BR': 'Brazil',
-    'A': 'Austria', 'D': 'Germany', 'B': 'Belgium', 'NL': 'Netherlands', 'E': 'Spain',
-    'L': 'Luxembourg', 'TH': 'Thailand', 'SA': 'Saudi Arabia', 'PE': 'Peru'
+    US: "United States",
+    CN: "China",
+    HK: "Hong Kong",
+    ENG: "United Kingdom",
+    SP: "Spain",
+    TI: "Taiwan",
+    IN: "India",
+    F: "France",
+    CND: "Canada",
+    CH: "Switzerland",
+    J: "Japan",
+    KS: "South Korea",
+    I: "Italy",
+    BR: "Brazil",
+    A: "Austria",
+    D: "Germany",
+    B: "Belgium",
+    NL: "Netherlands",
+    E: "Spain",
+    L: "Luxembourg",
+    TH: "Thailand",
+    SA: "Saudi Arabia",
+    PE: "Peru",
   };
   return countryMap[code] || code;
 }
@@ -541,34 +1024,52 @@ function generateBloombergInsights(analytics, interpretation, readership) {
 
   // Embargo rate insights
   if (analytics.embargo_rate > 20) {
-    insights.push(`High embargo rate (${analytics.embargo_rate}%) indicates significant recent institutional interest`);
+    insights.push(
+      `High embargo rate (${analytics.embargo_rate}%) indicates significant recent institutional interest`
+    );
   } else if (analytics.embargo_rate < 5) {
-    insights.push(`Low embargo rate (${analytics.embargo_rate}%) suggests established institutional following`);
+    insights.push(
+      `Low embargo rate (${analytics.embargo_rate}%) suggests established institutional following`
+    );
   }
 
   // Geographic insights
-  const topCountries = Object.keys(analytics.geographic_distribution || {}).length;
+  const topCountries = Object.keys(
+    analytics.geographic_distribution || {}
+  ).length;
   if (topCountries > 15) {
-    insights.push(`Global institutional interest with ${topCountries} countries represented`);
+    insights.push(
+      `Global institutional interest with ${topCountries} countries represented`
+    );
   } else if (topCountries > 5) {
-    insights.push(`Regional institutional focus across ${topCountries} key markets`);
+    insights.push(
+      `Regional institutional focus across ${topCountries} key markets`
+    );
   }
 
   // Reading volume insights
   if (analytics.total_reads > 500) {
-    insights.push(`High institutional engagement with ${analytics.total_reads} total reads`);
+    insights.push(
+      `High institutional engagement with ${analytics.total_reads} total reads`
+    );
   } else if (analytics.total_reads > 100) {
-    insights.push(`Moderate institutional attention with ${analytics.total_reads} reads`);
+    insights.push(
+      `Moderate institutional attention with ${analytics.total_reads} reads`
+    );
   }
 
   // Timeline insights
   const timeline = analytics.reading_timeline || {};
   const months = Object.keys(timeline);
   if (months.length > 12) {
-    insights.push(`Sustained institutional interest over ${months.length} months`);
+    insights.push(
+      `Sustained institutional interest over ${months.length} months`
+    );
   }
 
-  return insights.length > 0 ? insights : ['Limited Bloomberg readership data available'];
+  return insights.length > 0
+    ? insights
+    : ["Limited Bloomberg readership data available"];
 }
 
 // Generate comprehensive AI analysis
@@ -600,17 +1101,21 @@ function generateAIAnalysis(analytics, interpretation, readership) {
     .map(([code, count]) => `${getCountryName(code)} (${count} reads)`);
 
   if (topCountries.length > 0) {
-    analysis += `Primary geographical interest comes from ${topCountries.join(', ')}. `;
+    analysis += `Primary geographical interest comes from ${topCountries.join(
+      ", "
+    )}. `;
   }
 
   // Timeline analysis
   const timeline = analytics.reading_timeline || {};
   const recentMonths = Object.entries(timeline)
-    .filter(([month]) => month.startsWith('2024') || month.startsWith('2025'))
+    .filter(([month]) => month.startsWith("2024") || month.startsWith("2025"))
     .reduce((sum, [, count]) => sum + count, 0);
 
   if (recentMonths > totalReads * 0.3) {
-    analysis += `Recent reading activity has been strong, with ${Math.round((recentMonths / totalReads) * 100)}% of reads occurring in the past year.`;
+    analysis += `Recent reading activity has been strong, with ${Math.round(
+      (recentMonths / totalReads) * 100
+    )}% of reads occurring in the past year.`;
   }
 
   return analysis;
@@ -626,23 +1131,6 @@ export async function getBloombergAnalysisSummary(ticker) {
     const errorMessage =
       statusCode === 404
         ? `Bloomberg analysis summary endpoint not available (404)`
-        : error.message;
-    return { error: true, message: errorMessage, status: statusCode };
-  }
-}
-
-export async function generateBloombergAnalysis(ticker) {
-  try {
-    const response = await api.post(
-      `/api/bloomberg/analysis/${ticker}/generate`
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error generating Bloomberg analysis:", error);
-    const statusCode = error.response?.status;
-    const errorMessage =
-      statusCode === 404
-        ? `Bloomberg analysis generation endpoint not available (404)`
         : error.message;
     return { error: true, message: errorMessage, status: statusCode };
   }
@@ -666,7 +1154,9 @@ export async function getAllBloombergAnalyses() {
 // FRC Report Timeline API Functions
 export async function getReportTimeline(ticker) {
   try {
-    const response = await api.get(`/api/frc/company/${ticker}/reports/timeline`);
+    const response = await api.get(
+      `/api/frc/company/${ticker}/reports/timeline`
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching report timeline:", error);
@@ -723,9 +1213,12 @@ export async function getCoverageImpactAnalysis(ticker, options = {}) {
       include_price_analysis: options.include_price_analysis !== false,
     };
 
-    const response = await api.get(`/api/frc/company/${ticker}/coverage-impact`, {
-      params: queryParams,
-    });
+    const response = await api.get(
+      `/api/frc/company/${ticker}/coverage-impact`,
+      {
+        params: queryParams,
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching coverage impact analysis:", error);
@@ -735,5 +1228,16 @@ export async function getCoverageImpactAnalysis(ticker, options = {}) {
         ? `Coverage impact analysis endpoint not available (404)`
         : error.message;
     return { error: true, message: errorMessage, status: statusCode };
+  }
+}
+
+// Get chart data with report timeline
+export async function getChartData(ticker) {
+  try {
+    const response = await getCompanyData(ticker, "chart-data");
+    return response;
+  } catch (error) {
+    console.error("Error fetching chart data:", error);
+    return { error: true, message: error.message };
   }
 }

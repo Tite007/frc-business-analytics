@@ -1,6 +1,6 @@
 import EnhancedDashboard from "./EnhancedDashboard";
 
-export default function ContentSections({
+export default function  ContentSections({
   chartData,
   metricsData,
   analysisData,

@@ -5,8 +5,8 @@ export default function CompanyHeader({ companyData, ticker }) {
   const getCompanyName = () => {
     return (
       companyData.company_name ||
-      companyData.data?.company_profile?.name ||
       companyData.company_data?.name ||
+      companyData.data?.company_profile?.name ||
       ticker
     );
   };
@@ -14,6 +14,7 @@ export default function CompanyHeader({ companyData, ticker }) {
   const getExchange = () => {
     return (
       companyData.exchange ||
+      companyData.company_data?.exchange ||
       companyData.data?.company_profile?.exchange ||
       "N/A"
     );
@@ -22,6 +23,7 @@ export default function CompanyHeader({ companyData, ticker }) {
   const getCurrency = () => {
     return (
       companyData.currency ||
+      companyData.company_data?.currency ||
       companyData.data?.company_profile?.currency ||
       "USD"
     );
@@ -29,19 +31,43 @@ export default function CompanyHeader({ companyData, ticker }) {
 
   const getIndustry = () => {
     return (
-      companyData.data?.company_profile?.industry ||
       companyData.industry ||
       companyData.company_data?.industry ||
+      companyData.data?.company_profile?.industry ||
       "N/A"
     );
   };
 
   const getSector = () => {
     return (
-      companyData.data?.company_profile?.sector ||
       companyData.sector ||
       companyData.company_data?.sector ||
+      companyData.data?.company_profile?.sector ||
       "N/A"
+    );
+  };
+
+  const getDescription = () => {
+    return (
+      companyData.company_data?.description ||
+      companyData.data?.company_profile?.description ||
+      null
+    );
+  };
+
+  const getCEO = () => {
+    return (
+      companyData.company_data?.ceo ||
+      companyData.data?.company_profile?.ceo ||
+      null
+    );
+  };
+
+  const getWebsite = () => {
+    return (
+      companyData.company_data?.website_url ||
+      companyData.data?.company_profile?.website_url ||
+      null
     );
   };
 
@@ -79,7 +105,35 @@ export default function CompanyHeader({ companyData, ticker }) {
                 <span className="text-base">🏢 Sector</span>
                 <span className="text-base font-medium">{getSector()}</span>
               </div>
+              {getCEO() && (
+                <div className="flex items-center gap-3">
+                  <span className="text-base">👤 CEO</span>
+                  <span className="text-base font-medium">{getCEO()}</span>
+                </div>
+              )}
+              {getWebsite() && (
+                <div className="flex items-center gap-3">
+                  <span className="text-base">🌐 Website</span>
+                  <a
+                    href={getWebsite()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-base font-medium text-blue-200 hover:text-white underline"
+                  >
+                    {getWebsite().replace(/^https?:\/\//, '')}
+                  </a>
+                </div>
+              )}
             </div>
+
+            {/* Company Description */}
+            {getDescription() && (
+              <div className="mt-6 text-blue-100">
+                <p className="text-sm leading-relaxed max-w-4xl">
+                  {getDescription()}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Data Availability Grid */}

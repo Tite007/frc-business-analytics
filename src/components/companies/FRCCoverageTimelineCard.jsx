@@ -12,19 +12,24 @@ import {
   StopIcon,
 } from "@heroicons/react/24/outline";
 
-export default function FRCCoverageTimelineCard({ company }) {
-  // Calculate coverage metrics
+export default function FRCCoverageTimelineCard({ company, chartData }) {
+  // Calculate coverage metrics using actual API data
   const calculateCoverageMetrics = () => {
-    const hasReports = (company.reports_count || 0) > 0;
+    // Use chartData if available (from chart-data API), otherwise fall back to company data
+    const reportsData = chartData?.reports_coverage || {};
+    const stockData = chartData?.chart_data || [];
+
+    const hasReports = (reportsData.total_reports || company.reports_count || 0) > 0;
     const hasDigitalReports = company.status === "success";
     const hasPdfReports = company.status === "frc_covered_no_digital_reports";
-    const hasStockData = (company.stock_data_points || 0) > 0;
+    const hasStockData = stockData.length > 0 || (company.stock_data_points || 0) > 0;
 
-    // Simulate coverage timeline data (in real implementation, this would come from API)
-    const firstReportDate = company.first_report_date || company.analysis_date;
-    const lastReportDate = company.last_report_date || company.analysis_date;
-    const coverageDurationDays = firstReportDate && lastReportDate ?
-      Math.floor((new Date(lastReportDate) - new Date(firstReportDate)) / (1000 * 60 * 60 * 24)) : 0;
+    // Use actual API data for dates
+    const firstReportDate = reportsData.oldest_report || company.first_report_date || company.analysis_date;
+    const lastReportDate = reportsData.newest_report || company.last_report_date || company.analysis_date;
+    const coverageDurationDays = reportsData.date_span_days ||
+      (firstReportDate && lastReportDate ?
+        Math.floor((new Date(lastReportDate) - new Date(firstReportDate)) / (1000 * 60 * 60 * 24)) : 0);
 
     return {
       hasReports,
@@ -34,9 +39,10 @@ export default function FRCCoverageTimelineCard({ company }) {
       firstReportDate,
       lastReportDate,
       coverageDurationDays,
-      totalReports: company.reports_count || 0,
-      digitalReports: hasDigitalReports ? (company.reports_count || 0) : 0,
+      totalReports: reportsData.total_reports || company.reports_count || 0,
+      digitalReports: hasDigitalReports ? (reportsData.total_reports || company.reports_count || 0) : 0,
       pdfReports: hasPdfReports ? 1 : 0,
+      stockDataPoints: chartData?.total_data_points || company.stock_data_points || 0,
     };
   };
 
@@ -151,7 +157,7 @@ export default function FRCCoverageTimelineCard({ company }) {
             <div>
               <span className="text-gray-500">Stock Data:</span>
               <span className="font-medium text-blue-600 ml-1">
-                {metrics.hasStockData ? `${company.stock_data_points} points` : 'None'}
+                {metrics.hasStockData ? `${metrics.stockDataPoints.toLocaleString()} points` : 'None'}
               </span>
             </div>
           </div>

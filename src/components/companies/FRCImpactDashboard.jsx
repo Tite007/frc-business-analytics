@@ -12,18 +12,47 @@ import {
 import FRCCoverageTimelineCard from "./FRCCoverageTimelineCard";
 import FRCCoverageImpactAnalysis from "./FRCCoverageImpactAnalysis";
 import ChronologicalReportTimeline from "./ChronologicalReportTimeline";
+import { getChartData } from "@/lib/api";
+import AdvancedFRCChart from "../charts/AdvancedFRCChart";
 
 export default function FRCImpactDashboard({ company, className = "" }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const [chartData, setChartData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch chart data on component mount and refresh
+  useEffect(() => {
+    if (company?.ticker) {
+      fetchChartData();
+    }
+  }, [company?.ticker]);
+
+  const fetchChartData = async () => {
+    if (!company?.ticker) return;
+
+    setLoading(true);
+    try {
+      const data = await getChartData(company.ticker);
+      if (data.success) {
+        setChartData(data);
+      } else if (data.error) {
+        console.error('Error fetching chart data:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle refresh functionality
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Add small delay for visual feedback
+    await fetchChartData();
     setTimeout(() => {
       setRefreshing(false);
-    }, 1000);
+    }, 500);
   };
 
   const tabs = [
@@ -47,22 +76,28 @@ export default function FRCImpactDashboard({ company, className = "" }) {
     }
   ];
 
-  // Generate impact summary for the company
+  // Generate impact summary using actual API data
   const generateImpactSummary = () => {
-    const hasReports = (company.reports_count || 0) > 0;
+    // Use chartData if available for more accurate information
+    const reportsData = chartData?.reports_coverage || {};
+    const stockData = chartData?.chart_data || [];
+
+    const hasReports = (reportsData.total_reports || company.reports_count || 0) > 0;
     const hasDigitalReports = company.status === "success";
     const hasPdfReports = company.status === "frc_covered_no_digital_reports";
-    const hasStockData = (company.stock_data_points || 0) > 0;
+    const hasStockData = stockData.length > 0 || (company.stock_data_points || 0) > 0;
 
     let summary = {
       coverage_status: "not_covered",
-      total_reports: company.reports_count || 0,
-      digital_reports: hasDigitalReports ? (company.reports_count || 0) : 0,
+      total_reports: reportsData.total_reports || company.reports_count || 0,
+      digital_reports: hasDigitalReports ? (reportsData.total_reports || company.reports_count || 0) : 0,
       pdf_reports: hasPdfReports ? 1 : 0,
-      stock_data_points: company.stock_data_points || 0,
-      first_report_date: company.first_report_date || company.analysis_date,
-      latest_report_date: company.last_report_date || company.analysis_date,
-      frc_covered: company.frc_covered || false
+      stock_data_points: chartData?.total_data_points || company.stock_data_points || 0,
+      first_report_date: reportsData.oldest_report || company.first_report_date || company.analysis_date,
+      latest_report_date: reportsData.newest_report || company.last_report_date || company.analysis_date,
+      frc_covered: company.frc_covered || hasReports,
+      date_span_days: reportsData.date_span_days || 0,
+      data_range: chartData?.date_range || null,
     };
 
     if (hasDigitalReports) {
@@ -151,13 +186,16 @@ export default function FRCImpactDashboard({ company, className = "" }) {
           </div>
 
           <div className="text-right">
-            <div className="text-sm text-gray-500">Last Updated</div>
+            <div className="text-sm text-gray-500">Data Coverage</div>
             <div className="font-medium text-gray-900">
-              {company.analysis_date ?
-                new Date(company.analysis_date).toLocaleDateString() :
-                'N/A'
+              {summary.data_range ?
+                `${summary.data_range.start} to ${summary.data_range.end}` :
+                (company.analysis_date ? new Date(company.analysis_date).toLocaleDateString() : 'N/A')
               }
             </div>
+            {summary.date_span_days > 0 && (
+              <div className="text-xs text-gray-500">{summary.date_span_days} days</div>
+            )}
           </div>
         </div>
 
@@ -220,7 +258,22 @@ export default function FRCImpactDashboard({ company, className = "" }) {
                 </p>
               </div>
 
-              <FRCCoverageTimelineCard company={company} />
+              <FRCCoverageTimelineCard company={company} chartData={chartData} />
+
+              {/* Interactive Chart with Report Markers */}
+              {chartData && chartData.chart_data && chartData.chart_data.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Stock Price with FRC Report Timeline</h4>
+                  <AdvancedFRCChart
+                    chartData={chartData}
+                    ticker={company.ticker}
+                    companyName={company.company_name}
+                    height={500}
+                    showVolume={true}
+                    showCandlestick={false}
+                  />
+                </div>
+              )}
 
               {summary.coverage_status !== "not_covered" && (
                 <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
@@ -271,7 +324,7 @@ export default function FRCImpactDashboard({ company, className = "" }) {
                 <FRCCoverageImpactAnalysis ticker={company.ticker} />
               ) : (
                 <div className="text-center py-12">
-                  <TrendingUpIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <ArrowTrendingUpIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h4 className="text-lg font-medium text-gray-900 mb-2">No Coverage Impact Data</h4>
                   <p className="text-gray-600">
                     {company.company_name} is not currently covered by FRC research.

@@ -20,8 +20,8 @@ export default function DetailedMetricsTable({
   const getCompanyName = () => {
     return (
       companyData.company_name ||
-      companyData.data?.company_profile?.name ||
       companyData.company_data?.name ||
+      companyData.data?.company_profile?.name ||
       ticker
     );
   };

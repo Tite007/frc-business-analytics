@@ -8,7 +8,7 @@ import BackNavigation from "@/components/company/BackNavigation";
 import CompanyHeader from "@/components/company/CompanyHeader";
 import ContentSections from "@/components/company/ContentSections";
 
-export default function CompanyPage() {
+export default function CompanyPage() {     
   const params = useParams();
   const ticker = params?.company?.toUpperCase();
 

@@ -14,15 +14,20 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
     return null;
   }
 
-  // Calculate summary statistics
-  const totalCompanies = companies.length;
+  // Calculate summary statistics - COUNT TICKERS, NOT UNIQUE COMPANIES
+  const totalTickers = companies.length; // This is the total number of ticker symbols (231)
   const digitalReports = companies.filter((c) => c.status === "success").length;
+
+  // Count unique companies by grouping by company_name
+  const uniqueCompanies = new Set(companies.map(c => c.company_name)).size;
 
   const usCompanies = companies.filter(
     (c) => {
       const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
       return exchanges.some(ex =>
-        ex === "NASDAQ" || ex === "NYSE" || ex === "NYSE Arca" || ex === "New York Stock Exchange"
+        ex === "NASDAQ" || ex === "NYSE" || ex === "NYSE Arca" ||
+        ex === "New York Stock Exchange" || ex === "NASDAQ Global Market" ||
+        ex === "NASDAQ Capital Market" || ex === "AMEX" || ex === "OTC"
       );
     }
   ).length;
@@ -30,7 +35,10 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
   const canadianCompanies = companies.filter(
     (c) => {
       const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
-      return exchanges.some(ex => ex === "TSX" || ex === "TSXV");
+      return exchanges.some(ex =>
+        ex === "TSX" || ex === "TSXV" || ex === "Toronto Stock Exchange" ||
+        ex === "TSX Venture Exchange" || ex === "CNQ" || ex === "NEO"
+      );
     }
   ).length;
 
@@ -52,11 +60,11 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
 
   const metrics = [
     {
-      title: "Total Companies",
-      value: totalCompanies,
+      title: "Total Tickers",
+      value: totalTickers,
       icon: BuildingOfficeIcon,
       color: "blue",
-      description: "FRC-covered companies",
+      description: `${uniqueCompanies} unique companies`,
       format: "number",
     },
     {
@@ -66,37 +74,37 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
       color: "green",
       description: "Full interactive dashboards",
       format: "number",
-      percentage: Math.round((digitalReports / totalCompanies) * 100),
+      percentage: Math.round((digitalReports / totalTickers) * 100),
     },
     {
       title: "Charts Available",
       value: withCharts,
       icon: ChartBarIcon,
       color: "emerald",
-      description: "Companies with chart data",
+      description: "Tickers with chart data",
       format: "number",
-      percentage: Math.round((withCharts / totalCompanies) * 100),
+      percentage: Math.round((withCharts / totalTickers) * 100),
     },
     {
       title: "Metrics Available",
       value: withMetrics,
       icon: ArrowTrendingUpIcon,
       color: "indigo",
-      description: "Volume correlation analysis",
+      description: "Volume impact analysis",
       format: "number",
-      percentage: Math.round((withMetrics / totalCompanies) * 100),
+      percentage: Math.round((withMetrics / totalTickers) * 100),
     },
     {
       title: "Stock Data Points",
       value: totalStockDataPoints.toLocaleString(),
       icon: GlobeAmericasIcon,
       color: "orange",
-      description: "Total data points across all companies",
+      description: "Total data points across all tickers",
       format: "string",
     },
     {
       title: "Coverage Rate",
-      value: Math.round((frcCovered / totalCompanies) * 100),
+      value: Math.round((frcCovered / totalTickers) * 100),
       icon: EyeIcon,
       color: "purple",
       description: "FRC research coverage",
@@ -134,7 +142,7 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
             Companies Overview
           </h2>
           <p className="text-gray-600">
-            Comprehensive coverage across {totalCompanies} companies with{" "}
+            Comprehensive coverage across {totalTickers} tickers ({uniqueCompanies} unique companies) with{" "}
             {totalReports} total reports
           </p>
         </div>
@@ -248,7 +256,7 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
                     {stat.count}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {Math.round((stat.count / totalCompanies) * 100)}%
+                    {Math.round((stat.count / totalTickers) * 100)}%
                   </p>
                 </div>
               </div>
@@ -265,7 +273,7 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full ${stat.color}`}
-                    style={{ width: `${(stat.count / totalCompanies) * 100}%` }}
+                    style={{ width: `${(stat.count / totalTickers) * 100}%` }}
                   ></div>
                 </div>
                 <span className="text-sm text-gray-500 w-12 text-right">
@@ -275,6 +283,7 @@ export default function CompaniesSummaryDashboard({ companies, onViewAll }) {
             ))}
           </div>
         </div>
+
 
         {/* Top Performers */}
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">

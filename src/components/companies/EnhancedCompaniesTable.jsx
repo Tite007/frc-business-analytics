@@ -106,6 +106,7 @@ export default function EnhancedCompaniesTable({
     setExpandedRows(newExpanded);
   };
 
+
   const exportData = () => {
     const csvContent = [
       ["Company", "Ticker", "Exchange", "Currency", "Status", "Reports Count", "Stock Data Points", "Has Chart", "Has Metrics", "Analysis Date"],
@@ -176,36 +177,36 @@ export default function EnhancedCompaniesTable({
       return (
         <Link
           href={`/${company.ticker}`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs font-medium"
         >
-          <ChartBarIcon className="h-4 w-4" />
+          <ChartBarIcon className="h-3 w-3" />
           View Dashboard
         </Link>
       );
     } else if (hasPdfReports) {
       return (
         <button
-          className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
+          className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-xs font-medium"
           title="PDF reports available - Contact FRC for access"
         >
-          <DocumentTextIcon className="h-4 w-4" />
-          PDF Available
+          <DocumentTextIcon className="h-3 w-3" />
+          PDF Only
         </button>
       );
     } else if (hasStockData) {
       return (
         <button
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+          className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-xs font-medium"
           title="Stock data available - Limited report access"
         >
-          <GlobeAmericasIcon className="h-4 w-4" />
-          Stock Data
+          <GlobeAmericasIcon className="h-3 w-3" />
+          Stock Only
         </button>
       );
     } else {
       return (
         <button
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium"
+          className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed text-xs font-medium"
           disabled
           title="No data available at this time"
         >
@@ -319,24 +320,41 @@ export default function EnhancedCompaniesTable({
   // Card View Component
   const CardView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {paginatedCompanies.map((company) => (
-        <div key={company.ticker} className="space-y-4">
-          {/* Company Info Header */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden">
+      {paginatedCompanies.map((company) => {
+        const volumeImpact = company.volume_impact_30d || null;
+        const priceImpact = company.price_impact_30d || null;
+
+        return (
+          <div key={company.ticker} className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden">
             {/* Card Header */}
             <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white">
               <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-bold text-lg truncate">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-lg font-mono truncate">
                     {company.ticker}
                   </h3>
-                  <p className="text-blue-100 text-sm">
-                    {Array.isArray(company.exchange) ? company.exchange.join(", ") : company.exchange}
-                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {Array.isArray(company.exchange) ? (
+                      company.exchange.map((ex, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-white bg-opacity-20 backdrop-blur-sm rounded text-xs font-medium">
+                          {ex}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="px-2 py-0.5 bg-white bg-opacity-20 backdrop-blur-sm rounded text-xs font-medium">
+                        {company.exchange}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <span className="bg-white bg-opacity-20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
-                  {company.currency}
-                </span>
+                <div className="text-right">
+                  <span className="bg-white bg-opacity-20 backdrop-blur-sm px-2 py-1 rounded text-sm font-medium">
+                    {company.currency}
+                  </span>
+                  <div className="text-xs text-blue-100 mt-1">
+                    ID: {company._id}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -345,25 +363,82 @@ export default function EnhancedCompaniesTable({
               {/* Company Name */}
               <div>
                 <h4 className="text-sm font-medium text-gray-600 mb-1">
-                  Company Name
+                  Company
                 </h4>
-                <p
-                  className="text-gray-900 text-sm font-medium line-clamp-2"
-                  title={company.company_name}
-                >
+                <p className="text-gray-900 text-sm font-medium line-clamp-2" title={company.company_name}>
                   {company.company_name}
                 </p>
               </div>
 
+              {/* Impact Metrics Grid */}
+              <div className="grid grid-cols-3 gap-3">
+                {/* FRC Reports */}
+                <div className="text-center p-2 bg-purple-50 rounded-lg">
+                  <div className="text-lg font-bold text-purple-600">
+                    {company.reports_count || 0}
+                  </div>
+                  <div className="text-xs text-gray-600">FRC Reports</div>
+                  {company.frc_covered && (
+                    <div className="text-xs text-green-600 font-medium mt-1">✅ Covered</div>
+                  )}
+                </div>
+
+                {/* Volume Impact */}
+                <div className="text-center p-2 bg-blue-50 rounded-lg">
+                  <div className={`text-lg font-bold ${
+                    volumeImpact !== null
+                      ? volumeImpact > 0 ? "text-green-600" : volumeImpact < 0 ? "text-red-600" : "text-gray-600"
+                      : "text-gray-400"
+                  }`}>
+                    {volumeImpact !== null ? `${volumeImpact > 0 ? "+" : ""}${volumeImpact.toFixed(1)}%` : "N/A"}
+                  </div>
+                  <div className="text-xs text-gray-600">Volume 30d</div>
+                </div>
+
+                {/* Price Impact */}
+                <div className="text-center p-2 bg-green-50 rounded-lg">
+                  <div className={`text-lg font-bold ${
+                    priceImpact !== null
+                      ? priceImpact > 0 ? "text-green-600" : priceImpact < 0 ? "text-red-600" : "text-gray-600"
+                      : "text-gray-400"
+                  }`}>
+                    {priceImpact !== null ? `${priceImpact > 0 ? "+" : ""}${priceImpact.toFixed(1)}%` : "N/A"}
+                  </div>
+                  <div className="text-xs text-gray-600">Price 30d</div>
+                </div>
+              </div>
+
+              {/* Stock Data Points */}
+              <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-600">Stock Data:</span>
+                <div className="flex items-center gap-2">
+                  <span className={`font-semibold text-sm ${
+                    (company.stock_data_points || 0) > 0 ? "text-blue-600" : "text-gray-400"
+                  }`}>
+                    {company.stock_data_points ? `${(company.stock_data_points / 1000).toFixed(1)}k` : "0"}
+                  </span>
+                  <div className="flex gap-1">
+                    {company.has_chart && <span className="text-green-600 text-xs" title="Chart Available">📊</span>}
+                    {company.has_metrics && <span className="text-blue-600 text-xs" title="Metrics Available">📈</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Last Analysis Date */}
+              {company.analysis_date && (
+                <div className="text-xs text-gray-500 text-center p-2 bg-gray-50 rounded">
+                  Last analysis: {new Date(company.analysis_date).toLocaleDateString()}
+                </div>
+              )}
+
               {/* Action Button */}
-              <div className="pt-2">{getActionButton(company)}</div>
+              <div className="pt-2 flex justify-center">
+                {getActionButton(company)}
+              </div>
             </div>
           </div>
-
-          {/* FRC Coverage Timeline Card */}
-          <FRCCoverageTimelineCard company={company} />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -376,7 +451,7 @@ export default function EnhancedCompaniesTable({
           <thead className="bg-gradient-to-r from-slate-800 to-slate-700">
             <tr>
               <th
-                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
+                className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
                 onClick={() => {
                   if (sortBy === "company_name") {
                     setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -386,19 +461,19 @@ export default function EnhancedCompaniesTable({
                   }
                 }}
               >
-                <div className="flex items-center gap-2">
-                  <BuildingOfficeIcon className="h-4 w-4" />
+                <div className="flex items-center gap-1">
+                  <BuildingOfficeIcon className="h-3 w-3" />
                   Company
                   {sortBy === "company_name" &&
                     (sortOrder === "asc" ? (
-                      <ChevronUpIcon className="h-4 w-4" />
+                      <ChevronUpIcon className="h-3 w-3" />
                     ) : (
-                      <ChevronDownIcon className="h-4 w-4" />
+                      <ChevronDownIcon className="h-3 w-3" />
                     ))}
                 </div>
               </th>
               <th
-                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
+                className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
                 onClick={() => {
                   if (sortBy === "ticker") {
                     setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -408,98 +483,47 @@ export default function EnhancedCompaniesTable({
                   }
                 }}
               >
-                <div className="flex items-center gap-2">
-                  Ticker
+                <div className="flex items-center gap-1">
+                  Ticker / Exchange
                   {sortBy === "ticker" &&
                     (sortOrder === "asc" ? (
-                      <ChevronUpIcon className="h-4 w-4" />
+                      <ChevronUpIcon className="h-3 w-3" />
                     ) : (
-                      <ChevronDownIcon className="h-4 w-4" />
+                      <ChevronDownIcon className="h-3 w-3" />
                     ))}
                 </div>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
-                Exchange
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
-                Status
-              </th>
-              <th
-                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
-                onClick={() => {
-                  if (sortBy === "reports_count") {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                  } else {
-                    setSortBy("reports_count");
-                    setSortOrder("desc");
-                  }
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <DocumentTextIcon className="h-4 w-4" />
-                  Reports
-                  {sortBy === "reports_count" &&
-                    (sortOrder === "asc" ? (
-                      <ChevronUpIcon className="h-4 w-4" />
-                    ) : (
-                      <ChevronDownIcon className="h-4 w-4" />
-                    ))}
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
+                <div className="flex items-center gap-1">
+                  <DocumentTextIcon className="h-3 w-3" />
+                  FRC Reports
                 </div>
               </th>
-              <th
-                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
-                onClick={() => {
-                  if (sortBy === "stock_data_points") {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                  } else {
-                    setSortBy("stock_data_points");
-                    setSortOrder("desc");
-                  }
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <ChartBarIcon className="h-4 w-4" />
-                  Data Points
-                  {sortBy === "stock_data_points" &&
-                    (sortOrder === "asc" ? (
-                      <ChevronUpIcon className="h-4 w-4" />
-                    ) : (
-                      <ChevronDownIcon className="h-4 w-4" />
-                    ))}
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
+                <div className="flex items-center gap-1">
+                  <CurrencyDollarIcon className="h-3 w-3" />
+                  Impact Metrics
+                  <span className="text-green-300 text-xs">30d</span>
                 </div>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
-                Data Available
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
+                Stock Data
               </th>
-              <th
-                className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
-                onClick={() => {
-                  if (sortBy === "analysis_date") {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                  } else {
-                    setSortBy("analysis_date");
-                    setSortOrder("desc");
-                  }
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  Last Updated
-                  {sortBy === "analysis_date" &&
-                    (sortOrder === "asc" ? (
-                      <ChevronUpIcon className="h-4 w-4" />
-                    ) : (
-                      <ChevronDownIcon className="h-4 w-4" />
-                    ))}
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
+                <div className="flex items-center gap-1">
+                  Last Analysis
                 </div>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {paginatedCompanies.map((company, index) => {
-              const statusInfo = getStatusInfo(company);
+              const volumeImpact = company.volume_impact_30d || null;
+              const priceImpact = company.price_impact_30d || null;
+
               return (
                 <React.Fragment key={company.ticker}>
                   <tr
@@ -507,97 +531,130 @@ export default function EnhancedCompaniesTable({
                       index % 2 === 0 ? "bg-white" : "bg-gray-50"
                     } hover:bg-blue-50 transition-colors duration-150`}
                   >
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-4 py-3 text-sm text-gray-900">
                       <div>
-                        <div className="font-medium">
+                        <div className="font-medium text-sm leading-tight">
                           {company.company_name}
                         </div>
-                        <div className="text-gray-500 text-xs">
-                          {company.currency}
+                        <div className="text-gray-500 text-xs mt-0.5">
+                          {company.currency} • ID: {company._id}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-semibold">
-                      {company.ticker}
+                    <td className="px-4 py-3 text-sm">
+                      <div>
+                        <div className="font-mono text-blue-600 font-semibold text-sm">
+                          {company.ticker}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Array.isArray(company.exchange) ? (
+                            company.exchange.map((ex, i) => (
+                              <span key={i} className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {ex}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              {company.exchange}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {Array.isArray(company.exchange) ? company.exchange.join(", ") : company.exchange}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{statusInfo.icon}</span>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}
+                          className={`font-semibold text-lg ${
+                            (company.reports_count || 0) > 0
+                              ? "text-green-600"
+                              : "text-gray-400"
+                          }`}
                         >
-                          {statusInfo.text}
+                          {company.reports_count || 0}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                      <span
-                        className={`font-semibold ${
-                          (company.reports_count || 0) > 0
-                            ? "text-green-600"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {company.reports_count || 0}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                      <span
-                        className={`font-semibold ${
-                          (company.stock_data_points || 0) > 0
-                            ? "text-blue-600"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {company.stock_data_points || 0}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex items-center gap-1">
-                        {company.has_chart && (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium" title="Chart Available">
-                            📊
-                          </span>
-                        )}
-                        {company.has_metrics && (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium" title="Metrics Available">
-                            📈
-                          </span>
-                        )}
                         {company.frc_covered && (
-                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium" title="FRC Covered">
-                            ✅
-                          </span>
+                          <span className="text-xs text-green-600 font-medium">FRC</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {company.analysis_date ? (
-                        <div>
-                          <div className="font-medium">
-                            {new Date(company.analysis_date).toLocaleDateString()}
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        {volumeImpact !== null || priceImpact !== null ? (
+                          <div className="flex flex-col items-center">
+                            {volumeImpact !== null && (
+                              <span className={`text-xs font-medium ${
+                                volumeImpact > 0 ? "text-green-600" : volumeImpact < 0 ? "text-red-600" : "text-gray-600"
+                              }`}>
+                                📊 {volumeImpact > 0 ? "+" : ""}{volumeImpact.toFixed(1)}% Vol
+                              </span>
+                            )}
+                            {priceImpact !== null && (
+                              <span className={`text-xs font-medium ${
+                                priceImpact > 0 ? "text-green-600" : priceImpact < 0 ? "text-red-600" : "text-gray-600"
+                              }`}>
+                                💰 {priceImpact > 0 ? "+" : ""}{priceImpact.toFixed(1)}% Price
+                              </span>
+                            )}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(company.analysis_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        ) : (
+                          <button
+                            className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
+                            onClick={() => window.open(`/api/frc/company/${company.ticker}/metrics`, '_blank')}
+                            title="Fetch live impact metrics"
+                          >
+                            📈 Load Metrics
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span
+                          className={`font-semibold text-xs ${
+                            (company.stock_data_points || 0) > 0
+                              ? "text-blue-600"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {company.stock_data_points ? `${(company.stock_data_points / 1000).toFixed(1)}k` : "0"}
+                        </span>
+                        <div className="flex gap-1">
+                          {company.has_chart && (
+                            <span className="text-green-600 text-xs" title="Chart Available">📊</span>
+                          )}
+                          {company.has_metrics && (
+                            <span className="text-blue-600 text-xs" title="Metrics Available">📈</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-600">
+                      {company.analysis_date ? (
+                        <div className="text-center">
+                          <div className="font-medium">
+                            {new Date(company.analysis_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </div>
+                          <div className="text-gray-500">
+                            {new Date(company.analysis_date).toLocaleDateString('en-US', {
+                              year: 'numeric'
+                            })}
                           </div>
                         </div>
                       ) : (
                         <span className="text-gray-400">N/A</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
                         {getActionButton(company)}
                         <button
                           onClick={() => toggleRowExpansion(company.ticker)}
-                          className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                          title="View Details"
                         >
-                          <EyeIcon className="h-4 w-4" />
                           {expandedRows.has(company.ticker) ? (
                             <ChevronUpIcon className="h-4 w-4" />
                           ) : (
@@ -611,75 +668,154 @@ export default function EnhancedCompaniesTable({
                   {/* Expanded Row */}
                   {expandedRows.has(company.ticker) && (
                     <tr className="bg-blue-50">
-                      <td colSpan="9" className="px-6 py-4">
-                        <div className="bg-white rounded-lg p-4">
-                          <h4 className="font-medium text-gray-900 mb-3">
-                            Company Details - {company.company_name}
-                          </h4>
+                      <td colSpan="7" className="px-4 py-4">
+                        <div className="bg-white rounded-lg p-4 border border-blue-200">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-semibold text-gray-900 text-lg">
+                              📊 {company.ticker} - Detailed Analysis
+                            </h4>
+                            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                              Source: FRC Database • ID: {company._id}
+                            </div>
+                          </div>
+
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-700 mb-2">
-                                Status Information
+                            {/* Volume Impact Metrics */}
+                            <div className="bg-blue-50 rounded-lg p-3">
+                              <h5 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-1">
+                                📈 Volume Impact (30-day)
                               </h5>
-                              <p className="text-sm text-gray-600 mb-2">
-                                {statusInfo.description}
-                              </p>
-                              <div className="text-sm text-gray-600">
-                                <div>Status: <span className="font-medium">{company.status}</span></div>
-                                <div>FRC Covered: <span className="font-medium">{company.frc_covered ? "Yes" : "No"}</span></div>
-                              </div>
-                            </div>
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-700 mb-2">
-                                Trading Information
-                              </h5>
-                              <div className="text-sm text-gray-600 space-y-1">
-                                <div>
-                                  Exchange:{" "}
-                                  <span className="font-medium">
-                                    {Array.isArray(company.exchange) ? company.exchange.join(", ") : company.exchange}
-                                  </span>
+                              <div className="space-y-2">
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {volumeImpact !== null ? `${volumeImpact > 0 ? "+" : ""}${volumeImpact.toFixed(2)}%` : "N/A"}
                                 </div>
-                                <div>
-                                  Currency:{" "}
-                                  <span className="font-medium">
-                                    {company.currency}
-                                  </span>
+                                <div className="text-xs text-gray-600">
+                                  Average volume change after FRC report publication
                                 </div>
-                                <div>
-                                  Ticker:{" "}
-                                  <span className="font-medium font-mono">
-                                    {company.ticker}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-700 mb-2">
-                                Data Availability
-                              </h5>
-                              <div className="text-sm text-gray-600 space-y-1">
-                                <div>
-                                  Reports:{" "}
-                                  <span className="font-medium text-green-600">
-                                    {company.reports_count || 0}
-                                  </span>
-                                </div>
-                                <div>
-                                  Stock Data Points:{" "}
-                                  <span className="font-medium text-blue-600">
-                                    {company.stock_data_points || 0}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-2">
-                                  {company.has_chart && <span className="text-green-600">📊 Charts</span>}
-                                  {company.has_metrics && <span className="text-blue-600">📈 Metrics</span>}
-                                </div>
-                                {company.analysis_date && (
-                                  <div className="text-xs text-gray-500 mt-2">
-                                    Last updated: {new Date(company.analysis_date).toLocaleString()}
+                                {volumeImpact !== null && (
+                                  <div className="text-xs">
+                                    <span className={`font-medium ${volumeImpact > 0 ? "text-green-600" : "text-red-600"}`}>
+                                      {volumeImpact > 0 ? "🔺 Increased" : "🔻 Decreased"} trading activity
+                                    </span>
                                   </div>
                                 )}
+                              </div>
+                            </div>
+
+                            {/* Price Impact Metrics */}
+                            <div className="bg-green-50 rounded-lg p-3">
+                              <h5 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-1">
+                                💰 Price Impact (30-day)
+                              </h5>
+                              <div className="space-y-2">
+                                <div className="text-2xl font-bold text-green-600">
+                                  {priceImpact !== null ? `${priceImpact > 0 ? "+" : ""}${priceImpact.toFixed(2)}%` : "N/A"}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  Price movement after FRC coverage
+                                </div>
+                                {priceImpact !== null && (
+                                  <div className="text-xs">
+                                    <span className={`font-medium ${priceImpact > 0 ? "text-green-600" : "text-red-600"}`}>
+                                      {priceImpact > 0 ? "📈 Positive" : "📉 Negative"} market reaction
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Trading Information */}
+                            <div className="bg-gray-50 rounded-lg p-3">
+                              <h5 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1">
+                                🏛️ Trading Details
+                              </h5>
+                              <div className="space-y-2 text-sm">
+                                <div>
+                                  <span className="text-gray-600">Exchange:</span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {Array.isArray(company.exchange) ? (
+                                      company.exchange.map((ex, i) => (
+                                        <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                          {ex}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                        {company.exchange}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Currency:</span>
+                                  <span className="font-mono font-semibold ml-2">{company.currency}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Stock Data:</span>
+                                  <span className="font-semibold ml-2 text-blue-600">
+                                    {company.stock_data_points ? `${(company.stock_data_points / 1000).toFixed(1)}k points` : "No data"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* FRC Coverage Status */}
+                            <div className="bg-purple-50 rounded-lg p-3">
+                              <h5 className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-1">
+                                📊 FRC Coverage
+                              </h5>
+                              <div className="space-y-2">
+                                <div className="text-2xl font-bold text-purple-600">
+                                  {company.reports_count || 0}
+                                </div>
+                                <div className="text-xs text-gray-600 mb-2">
+                                  Total FRC reports published
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  {company.frc_covered && (
+                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">
+                                      ✅ FRC Covered
+                                    </span>
+                                  )}
+                                  {company.has_chart && (
+                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
+                                      📊 Charts Available
+                                    </span>
+                                  )}
+                                  {company.has_metrics && (
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-medium">
+                                      📈 Metrics Available
+                                    </span>
+                                  )}
+                                </div>
+                                {company.analysis_date && (
+                                  <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200">
+                                    Last analysis: {new Date(company.analysis_date).toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* API Access Information */}
+                          <div className="mt-4 p-3 bg-gray-100 rounded-lg border-l-4 border-blue-500">
+                            <h6 className="text-sm font-semibold text-gray-800 mb-2">🔗 API Access Points</h6>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                              <div>
+                                <span className="text-gray-600">Metrics:</span>
+                                <span className="ml-2 text-blue-600">/api/frc/company/{company.ticker}/metrics</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Reports:</span>
+                                <span className="ml-2 text-blue-600">/api/frc/company/{company.ticker}/reports</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Chart Data:</span>
+                                <span className="ml-2 text-blue-600">/api/frc/company/{company.ticker}/chart-data</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Full Profile:</span>
+                                <span className="ml-2 text-blue-600">/api/frc/company/{company.ticker}</span>
                               </div>
                             </div>
                           </div>
@@ -777,6 +913,24 @@ export default function EnhancedCompaniesTable({
       <div className="p-6">
         {viewMode === "table" ? <TableView /> : <CardView />}
         <PaginationControls />
+
+        {/* Data Source Footer */}
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="text-center text-xs text-gray-500">
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              <span>📊 Data Source: FRC Database</span>
+              <span>•</span>
+              <span>🔗 API: /api/frc/companies</span>
+              <span>•</span>
+              <span>📈 Volume & Price Impact: 30-day post-publication analysis</span>
+              <span>•</span>
+              <span>⏰ Updated: {new Date().toLocaleDateString()}</span>
+            </div>
+            <div className="mt-1 text-gray-400">
+              Each ticker represents a unique exchange listing. Multi-exchange companies show separate metrics per ticker.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

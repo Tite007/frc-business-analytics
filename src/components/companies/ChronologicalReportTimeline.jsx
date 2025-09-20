@@ -6,141 +6,107 @@ import {
   DocumentTextIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
-  EyeIcon,
-  ClockIcon,
   PlayIcon,
-  PauseIcon,
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
-import { getCompanyReports, getReportTimeline } from "@/lib/api";
+import { getChartData, getCompanyData } from "@/lib/api";
 
 export default function ChronologicalReportTimeline({ ticker, className = "" }) {
-  const [reports, setReports] = useState([]);
-  const [timeline, setTimeline] = useState(null);
+  const [chartData, setChartData] = useState(null);
+  const [metricsData, setMetricsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState("timeline"); // "timeline" or "list"
+  const [viewMode, setViewMode] = useState("cards"); // "cards" or "table"
 
   useEffect(() => {
-    async function fetchReportData() {
+    async function fetchData() {
       try {
         setLoading(true);
 
-        // Fetch both reports and timeline data
-        const [reportsResponse, timelineResponse] = await Promise.all([
-          getCompanyReports(ticker, {
-            include_pdf: true,
-            include_digital: true,
-          }),
-          getReportTimeline(ticker)
+        // Fetch both chart data and metrics data
+        const [chartResponse, metricsResponse] = await Promise.all([
+          getChartData(ticker),
+          getCompanyData(ticker, "metrics")
         ]);
 
-        if (reportsResponse.error && timelineResponse.error) {
-          setError("Report data not available");
-        } else {
-          // Merge and sort reports chronologically
-          const allReports = [];
+        if (chartResponse.error) {
+          setError(chartResponse.message);
+        } else if (chartResponse.success) {
+          setChartData(chartResponse);
+        }
 
-          if (reportsResponse.reports) {
-            allReports.push(...reportsResponse.reports);
-          }
-
-          if (timelineResponse.timeline_events) {
-            allReports.push(...timelineResponse.timeline_events);
-          }
-
-          // Sort by date (oldest first)
-          const sortedReports = allReports
-            .filter(report => report.date || report.publication_date)
-            .sort((a, b) => {
-              const dateA = new Date(a.date || a.publication_date);
-              const dateB = new Date(b.date || b.publication_date);
-              return dateA - dateB;
-            });
-
-          setReports(sortedReports);
-          setTimeline(timelineResponse.summary || null);
+        if (metricsResponse.success) {
+          setMetricsData(metricsResponse);
         }
       } catch (err) {
-        setError(`Failed to load report timeline: ${err.message}`);
+        setError(`Failed to load data: ${err.message}`);
       } finally {
         setLoading(false);
       }
     }
 
     if (ticker) {
-      fetchReportData();
+      fetchData();
     }
   }, [ticker]);
 
-  const getReportTypeInfo = (report) => {
-    const isDigital = report.type === "digital" || report.has_digital_access;
-    const isPdf = report.type === "pdf" || report.format === "pdf";
+  // Create report entries based on real metrics data
+  const generateReportEntries = () => {
+    if (!metricsData || !metricsData.detailed_metrics) return [];
 
-    if (isDigital) {
+    const { detailed_metrics } = metricsData;
+
+    // Sort by publication date to maintain chronological order
+    const sortedMetrics = detailed_metrics.sort((a, b) =>
+      new Date(a.publication_date) - new Date(b.publication_date)
+    );
+
+    const reports = sortedMetrics.map((metric, index) => {
+      const frc30 = metric.frc_30_day_analysis;
+
       return {
-        type: "digital",
-        icon: ChartBarIcon,
-        color: "bg-blue-100 text-blue-800",
-        borderColor: "border-blue-300",
-        label: "Digital Report",
-        description: "Interactive dashboard available"
+        reportNumber: metric.report_id,
+        date: metric.publication_date,
+        title: metric.report_title,
+        reportType: metric.report_type,
+        isPdf: metric.is_pdf,
+
+        // Real 30-day metrics from API
+        priceOnRelease: frc30.price_on_release,
+        volumeOnRelease: frc30.volume_on_release,
+        priceAfter30Days: frc30.price_after_30_days,
+        priceChange30d: frc30.price_change_30_days_pct,
+
+        avgVolumeBefore: frc30.avg_volume_pre_30_days,
+        avgVolumeAfter: frc30.avg_volume_post_30_days,
+        volumeChange30d: frc30.volume_change_pre_post_30_days_pct,
+        volumeSpike30d: frc30.volume_spike_30_days_pct,
+
+        // Additional metrics available
+        window5Days: metric.window_5_days,
+        window10Days: metric.window_10_days,
+        volatility: metric.volatility_analysis,
+        frc15: metric.frc_15_day_analysis,
+
+        isFirst: index === 0,
+        isLatest: index === sortedMetrics.length - 1,
       };
-    } else if (isPdf) {
-      return {
-        type: "pdf",
-        icon: DocumentTextIcon,
-        color: "bg-yellow-100 text-yellow-800",
-        borderColor: "border-yellow-300",
-        label: "PDF Report",
-        description: "Research document"
-      };
-    } else {
-      return {
-        type: "unknown",
-        icon: DocumentTextIcon,
-        color: "bg-gray-100 text-gray-800",
-        borderColor: "border-gray-300",
-        label: "Report",
-        description: "Research coverage"
-      };
-    }
+    });
+
+    return reports;
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return {
-      full: date.toLocaleDateString(),
-      month: date.toLocaleDateString(undefined, { month: 'short' }),
-      day: date.getDate(),
-      year: date.getFullYear()
-    };
+  const reportEntries = generateReportEntries();
+
+  const formatPercent = (value) => {
+    return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
 
-  const calculateCoverageStats = () => {
-    if (!reports.length) return null;
-
-    const digitalReports = reports.filter(r => getReportTypeInfo(r).type === "digital").length;
-    const pdfReports = reports.filter(r => getReportTypeInfo(r).type === "pdf").length;
-    const firstReport = reports[0];
-    const lastReport = reports[reports.length - 1];
-
-    const firstDate = new Date(firstReport.date || firstReport.publication_date);
-    const lastDate = new Date(lastReport.date || lastReport.publication_date);
-    const coverageDays = Math.floor((lastDate - firstDate) / (1000 * 60 * 60 * 24));
-
-    return {
-      totalReports: reports.length,
-      digitalReports,
-      pdfReports,
-      coverageDays,
-      firstDate,
-      lastDate,
-      avgReportsPerMonth: coverageDays > 0 ? (reports.length / (coverageDays / 30)).toFixed(1) : 0
-    };
+  const formatVolume = (value) => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+    return Math.round(value).toLocaleString();
   };
-
-  const stats = calculateCoverageStats();
 
   if (loading) {
     return (
@@ -165,7 +131,7 @@ export default function ChronologicalReportTimeline({ ticker, className = "" }) 
     );
   }
 
-  if (!reports.length) {
+  if (!reportEntries.length) {
     return (
       <div className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}>
         <div className="text-center">
@@ -186,8 +152,8 @@ export default function ChronologicalReportTimeline({ ticker, className = "" }) 
               <CalendarDaysIcon className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">FRC Research Timeline</h3>
-              <p className="text-sm text-gray-600">Chronological report publication history</p>
+              <h3 className="text-lg font-semibold text-gray-900">Report Performance Metrics</h3>
+              <p className="text-sm text-gray-600">Comprehensive analysis of {reportEntries.length} report performance</p>
             </div>
           </div>
 
@@ -195,200 +161,234 @@ export default function ChronologicalReportTimeline({ ticker, className = "" }) 
             {/* View Mode Toggle */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setViewMode("timeline")}
+                onClick={() => setViewMode("table")}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === "timeline"
+                  viewMode === "table"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Timeline
+                Table
               </button>
               <button
-                onClick={() => setViewMode("list")}
+                onClick={() => setViewMode("cards")}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === "list"
+                  viewMode === "cards"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                List
+                Cards
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Coverage Statistics */}
-      {stats && (
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.totalReports}</div>
-              <div className="text-xs text-gray-500">Total Reports</div>
+      {/* Summary Stats */}
+      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{reportEntries.length}</div>
+            <div className="text-xs text-gray-500">Reports</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">Export CSV</div>
+            <div className="text-xs text-gray-500">Download</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              {chartData?.reports_coverage?.date_span_days || 0}
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.digitalReports}</div>
-              <div className="text-xs text-gray-500">Digital</div>
+            <div className="text-xs text-gray-500">Days Coverage</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600">
+              {reportEntries.length > 0 ? Math.round(reportEntries.reduce((sum, r) => sum + (r.priceChange30d || 0), 0) / reportEntries.length * 100) / 100 : 0}%
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{stats.pdfReports}</div>
-              <div className="text-xs text-gray-500">PDF</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{stats.coverageDays}</div>
-              <div className="text-xs text-gray-500">Days Coverage</div>
-            </div>
+            <div className="text-xs text-gray-500">Avg Impact</div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Content */}
       <div className="p-6">
-        {viewMode === "timeline" ? (
-          /* Timeline View */
-          <div className="relative">
-            {/* Timeline Line */}
-            <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300"></div>
-
-            <div className="space-y-6">
-              {reports.map((report, index) => {
-                const typeInfo = getReportTypeInfo(report);
-                const TypeIcon = typeInfo.icon;
-                const date = formatDate(report.date || report.publication_date);
-                const isFirst = index === 0;
-                const isLast = index === reports.length - 1;
-
-                return (
-                  <div key={index} className="relative flex items-start gap-4">
-                    {/* Timeline Marker */}
-                    <div className={`relative z-10 flex items-center justify-center w-16 h-16 rounded-full border-4 ${
-                      isFirst ? 'border-green-400 bg-green-100' :
-                      isLast ? 'border-blue-400 bg-blue-100' :
-                      'border-gray-300 bg-white'
+        {viewMode === "table" ? (
+          /* Table View */
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Report Details
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    30 Days Before
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    30 Days After
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Impact Change
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Additional Metrics
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {reportEntries.map((report) => (
+                  <tr key={report.reportNumber} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="flex flex-col">
+                        <div className="font-medium text-gray-900 mb-1">{report.title}</div>
+                        <div className="text-xs text-gray-500">
+                          📅 {new Date(report.date).toLocaleDateString()} • 🔢 Report #{report.reportNumber}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <div className="space-y-1">
+                        <div className="text-gray-900 font-medium">
+                          ${report.priceOnRelease?.toFixed(2) || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Vol: {report.avgVolumeBefore ? formatVolume(report.avgVolumeBefore) : 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <div className="space-y-1">
+                        <div className="text-gray-900 font-medium">
+                          ${report.priceAfter30Days?.toFixed(2) || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Vol: {report.avgVolumeAfter ? formatVolume(report.avgVolumeAfter) : 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <div className="space-y-1">
+                        <div className={`font-medium ${report.priceChange30d > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatPercent(report.priceChange30d)}
+                        </div>
+                        <div className={`text-xs ${report.volumeChange30d > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          Vol: {formatPercent(report.volumeChange30d)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-500">5d Impact</div>
+                        <div className={`text-xs font-medium ${(report.window5Days?.price_impact_pct || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatPercent(report.window5Days?.price_impact_pct || 0)}
+                        </div>
+                        <div className="text-xs text-gray-500">Volatility</div>
+                        <div className="text-xs text-gray-600">
+                          {report.volatility?.annualized_volatility_pct?.toFixed(1) || 'N/A'}%
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Cards View */
+          <div className="space-y-4">
+            {reportEntries.map((report) => (
+              <div key={report.reportNumber} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className={`p-2 rounded-lg ${
+                      report.isFirst ? 'bg-green-100' :
+                      report.isLatest ? 'bg-blue-100' : 'bg-gray-100'
                     }`}>
-                      {isFirst ? (
-                        <PlayIcon className="h-6 w-6 text-green-600" />
-                      ) : isLast ? (
-                        <CheckCircleIcon className="h-6 w-6 text-blue-600" />
+                      {report.isFirst ? (
+                        <PlayIcon className="h-5 w-5 text-green-600" />
+                      ) : report.isLatest ? (
+                        <CheckCircleIcon className="h-5 w-5 text-blue-600" />
                       ) : (
-                        <TypeIcon className="h-6 w-6 text-gray-600" />
+                        <DocumentTextIcon className="h-5 w-5 text-gray-600" />
                       )}
                     </div>
 
-                    {/* Report Content */}
                     <div className="flex-1 min-w-0">
-                      <div className={`bg-white border rounded-lg p-4 shadow-sm ${typeInfo.borderColor}`}>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${typeInfo.color}`}>
-                                {typeInfo.label}
-                              </span>
-                              {isFirst && (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                  First Report
-                                </span>
-                              )}
-                              {isLast && (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                  Latest
-                                </span>
-                              )}
-                            </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          Report #{report.reportNumber}
+                        </span>
+                        {report.isFirst && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            First Coverage
+                          </span>
+                        )}
+                      </div>
 
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {report.title || report.report_title || `${typeInfo.label} - ${date.full}`}
-                            </h4>
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        {report.title}
+                      </h4>
 
-                            <p className="text-sm text-gray-600 mb-2">
-                              {report.summary || typeInfo.description}
-                            </p>
-
-                            {/* Report Metrics */}
-                            {report.volume_impact && (
-                              <div className="flex items-center gap-4 text-xs text-gray-500">
-                                <span className="flex items-center gap-1">
-                                  <ArrowTrendingUpIcon className="h-3 w-3" />
-                                  Volume: +{report.volume_impact}%
-                                </span>
-                                {report.price_impact && (
-                                  <span>Price: {report.price_impact > 0 ? '+' : ''}{report.price_impact}%</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="text-right ml-4">
-                            <div className="text-sm font-medium text-gray-900">{date.full}</div>
-                            <div className="text-xs text-gray-500">
-                              {index === 0 ? 'Coverage Started' :
-                               index === reports.length - 1 ? 'Most Recent' :
-                               `${reports.length - index} reports ago`}
-                            </div>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span>📅 {new Date(report.date).toLocaleDateString()}</span>
+                        <span>🔢 Report #{report.reportNumber}</span>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          /* List View */
-          <div className="space-y-3">
-            {reports.map((report, index) => {
-              const typeInfo = getReportTypeInfo(report);
-              const TypeIcon = typeInfo.icon;
-              const date = formatDate(report.date || report.publication_date);
 
-              return (
-                <div key={index} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${typeInfo.borderColor}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <TypeIcon className="h-5 w-5 text-gray-600" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${typeInfo.color}`}>
-                            {typeInfo.label}
-                          </span>
-                          <h4 className="font-medium text-gray-900 truncate">
-                            {report.title || report.report_title || `Report ${index + 1}`}
-                          </h4>
-                        </div>
-                        <p className="text-sm text-gray-600 truncate">
-                          {report.summary || typeInfo.description}
-                        </p>
+                  <div className="text-right ml-4">
+                    <div className="space-y-2">
+                      <div className="text-xs text-gray-500">Before</div>
+                      <div className="text-sm text-gray-900">${report.priceOnRelease?.toFixed(2) || 'N/A'}</div>
+                      <div className="text-xs text-gray-500">Vol: {report.avgVolumeBefore ? formatVolume(report.avgVolumeBefore) : 'N/A'}</div>
+
+                      <div className="border-t pt-2">
+                        <div className="text-xs text-gray-500">After</div>
+                        <div className="text-sm text-gray-900">${report.priceAfter30Days?.toFixed(2) || 'N/A'}</div>
+                        <div className="text-xs text-gray-500">Vol: {report.avgVolumeAfter ? formatVolume(report.avgVolumeAfter) : 'N/A'}</div>
                       </div>
-                    </div>
 
-                    <div className="text-right ml-4">
-                      <div className="text-sm font-medium text-gray-900">{date.full}</div>
-                      <div className="text-xs text-gray-500">
-                        {report.volume_impact && `+${report.volume_impact}% volume`}
+                      <div className="border-t pt-2">
+                        <div className={`text-sm font-medium ${report.priceChange30d > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatPercent(report.priceChange30d)}
+                        </div>
+                        <div className={`text-xs ${report.volumeChange30d > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          Vol: {formatPercent(report.volumeChange30d)}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+
+                {/* Report Timeline */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="text-sm text-gray-600">
+                    <strong>{report.title}</strong>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                    <span>📅 {new Date(report.date).toLocaleDateString()} • 🔢 Report #{report.reportNumber}</span>
+                    <span>30-day impact: {formatPercent(report.priceChange30d)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
       {/* Footer Summary */}
-      {stats && (
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <div className="text-sm text-gray-600 text-center">
-            <span className="font-medium text-gray-900">{stats.totalReports}</span> reports published over{" "}
-            <span className="font-medium text-gray-900">{stats.coverageDays}</span> days
-            {stats.avgReportsPerMonth > 0 && (
-              <span> • Average <span className="font-medium text-gray-900">{stats.avgReportsPerMonth}</span> reports/month</span>
-            )}
-          </div>
+      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <div className="text-sm text-gray-600 text-center">
+          <span className="font-medium text-gray-900">{reportEntries.length}</span> reports published from{" "}
+          <span className="font-medium text-gray-900">
+            {reportEntries.length > 0 ? new Date(reportEntries[0].date).toLocaleDateString() : 'N/A'}
+          </span> to{" "}
+          <span className="font-medium text-gray-900">
+            {reportEntries.length > 0 ? new Date(reportEntries[reportEntries.length - 1].date).toLocaleDateString() : 'N/A'}
+          </span>
         </div>
-      )}
+      </div>
     </div>
   );
 }
