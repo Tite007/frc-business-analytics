@@ -194,12 +194,6 @@ export default function EnhancedDashboard({
       count: null,
     },
     {
-      id: "frc-impact",
-      name: "FRC Impact Analysis",
-      icon: StarIcon,
-      count: null,
-    },
-    {
       id: "volume-correlation",
       name: "Volume Correlation",
       icon: ArrowTrendingUpIcon,
@@ -401,28 +395,6 @@ export default function EnhancedDashboard({
 
         {/* Tab Content */}
         <div className="p-4 lg:p-6">
-          {activeTab === "frc-impact" && (
-            <div className="space-y-6">
-              <FRCImpactDashboard
-                company={{
-                  ticker: ticker,
-                  company_name: getCompanyName(),
-                  exchange: getExchange(),
-                  currency: getCurrency(),
-                  status: companyData.status || "unknown",
-                  reports_count: getTotalReports(),
-                  stock_data_points: companyData.data_quality?.stock_data_points || companyData.stock_data_points || 0,
-                  has_chart: hasChartData,
-                  has_metrics: hasMetricsData,
-                  frc_covered: companyData.frc_covered || companyData.company_data?.frc_covered || false,
-                  analysis_date: companyData.analysis_date,
-                  first_report_date: companyData.data?.reports_summary?.reports_list?.[0]?.published_date,
-                  last_report_date: companyData.data?.reports_summary?.reports_list?.[companyData.data?.reports_summary?.reports_list?.length - 1]?.published_date,
-                }}
-              />
-            </div>
-          )}
-
           {activeTab === "overview" && (
             <div className="space-y-6 lg:space-y-8">
               {/* FRC Impact Analysis */}
@@ -451,16 +423,7 @@ export default function EnhancedDashboard({
                     <h3 className="text-lg font-semibold text-gray-900">
                       Quick Overview
                     </h3>
-                    <PDFExportButton
-                      companyData={companyData}
-                      chartData={chartData}
-                      metricsData={metricsData}
-                      analysisData={analysisData}
-                      bloombergData={bloombergData}
-                      ticker={ticker}
-                      className="px-3 py-1.5 text-sm"
-                      data-pdf-export
-                    />
+
                   </div>
                   <TableComponent
                     metrics={metricsData || []}
@@ -605,7 +568,6 @@ export default function EnhancedDashboard({
           {activeTab === "bloomberg" && (
             <div className="space-y-6">
               <BloombergReadershipTable ticker={ticker} />
-            
             </div>
           )}
         </div>

@@ -20,11 +20,13 @@ export default function DataSummaryDashboard({
     return null;
   }
 
+
   // Calculate summary statistics
   const totalReports = metricsData.length;
+  // Use Pre-Post data since that's where the real volume impact data is
   const avgVolumeChange =
     metricsData.reduce(
-      (sum, report) => sum + (report["Volume Change 30 Days (%)"] || 0),
+      (sum, report) => sum + (report["Volume Change Pre-Post 30 Days (%)"] || 0),
       0
     ) / totalReports;
   const avgPrePostChange =
@@ -35,9 +37,6 @@ export default function DataSummaryDashboard({
     ) / totalReports;
 
   const positiveVolumeReports = metricsData.filter(
-    (report) => (report["Volume Change 30 Days (%)"] || 0) > 0
-  ).length;
-  const positivePrePostReports = metricsData.filter(
     (report) => (report["Volume Change Pre-Post 30 Days (%)"] || 0) > 0
   ).length;
 
@@ -48,8 +47,8 @@ export default function DataSummaryDashboard({
   }, metricsData[0]);
 
   const bestPerformingReport = metricsData.reduce((best, report) => {
-    const reportChange = report["Volume Change 30 Days (%)"] || 0;
-    const bestChange = best["Volume Change 30 Days (%)"] || 0;
+    const reportChange = report["Volume Change Pre-Post 30 Days (%)"] || 0;
+    const bestChange = best["Volume Change Pre-Post 30 Days (%)"] || 0;
     return reportChange > bestChange ? report : best;
   }, metricsData[0]);
 
@@ -256,13 +255,13 @@ export default function DataSummaryDashboard({
               <span className="text-sm text-gray-600">Volume Impact:</span>
               <span
                 className={`font-semibold ${
-                  (mostRecentReport["Volume Change 30 Days (%)"] || 0) >= 0
+                  (mostRecentReport["Volume Change Pre-Post 30 Days (%)"] || 0) >= 0
                     ? "text-green-600"
                     : "text-red-600"
                 }`}
               >
                 {formatPercentage(
-                  mostRecentReport["Volume Change 30 Days (%)"] || 0
+                  mostRecentReport["Volume Change Pre-Post 30 Days (%)"] || 0
                 )}
               </span>
             </div>
@@ -304,7 +303,7 @@ export default function DataSummaryDashboard({
               <span className="text-sm text-gray-600">Volume Impact:</span>
               <span className="font-semibold text-green-600">
                 {formatPercentage(
-                  bestPerformingReport["Volume Change 30 Days (%)"] || 0
+                  bestPerformingReport["Volume Change Pre-Post 30 Days (%)"] || 0
                 )}
               </span>
             </div>

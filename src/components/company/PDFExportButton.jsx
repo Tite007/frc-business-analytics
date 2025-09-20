@@ -149,7 +149,7 @@ export default function PDFExportButton({
       >
         <ArrowDownTrayIcon className="w-5 h-5" />
         <span>
-          {isExporting ? 'Generating Professional Report...' : 'Export Investment Report'}
+          {isExporting ? 'Generating Professional Report...' : 'Export Report'}
         </span>
 
         {isExporting && (

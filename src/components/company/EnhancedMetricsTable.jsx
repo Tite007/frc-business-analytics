@@ -60,10 +60,13 @@ export default function EnhancedMetricsTable({
         "Ticker",
         "Price on Release",
         "Publication Date",
+        "Pre Volume 30D",
+        "Post Volume 30D",
         "Avg Volume 5D",
         "Avg Volume 10D",
         "Volume Δ 30D (%)",
         "Pre-Post Δ 30D (%)",
+        "Price Change 30D (%)",
       ],
       ...metricsData.map((report) => [
         report["Report Number"],
@@ -72,10 +75,13 @@ export default function EnhancedMetricsTable({
         ticker,
         report["Price on Release"],
         report["Publication Date"],
-        report["Avg Volume Post 5 Days"],
-        report["Avg Volume Post 10 Days"],
-        report["Volume Change 30 Days (%)"],
-        report["Volume Change Pre-Post 30 Days (%)"],
+        report["Avg Volume Pre 30 Days"]?.toLocaleString() || "0",
+        report["Avg Volume Post 30 Days"]?.toLocaleString() || "0",
+        report["Avg Volume Post 5 Days"]?.toLocaleString() || "0",
+        report["Avg Volume Post 10 Days"]?.toLocaleString() || "0",
+        report["Volume Change 30 Days (%)"] || 0,
+        report["Volume Change Pre-Post 30 Days (%)"] || 0,
+        report["Price Change 30 Days (%)"] || 0,
       ]),
     ]
       .map((row) => row.map((cell) => `"${cell}"`).join(","))
@@ -91,14 +97,31 @@ export default function EnhancedMetricsTable({
   };
 
   const formatPercentage = (value) => {
-    if (value === null || value === undefined) return "0.00%";
+    if (value === null || value === undefined || isNaN(value)) return "0.00%";
     const num = parseFloat(value);
+    if (isNaN(num)) return "0.00%";
     return `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
   };
 
   const getPercentageColor = (value) => {
-    if (value === null || value === undefined) return "text-gray-500";
-    return parseFloat(value) >= 0 ? "text-green-600" : "text-red-600";
+    if (value === null || value === undefined || isNaN(value)) return "text-gray-500";
+    const num = parseFloat(value);
+    if (isNaN(num)) return "text-gray-500";
+    return num >= 0 ? "text-green-600" : "text-red-600";
+  };
+
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined || isNaN(value)) return "$0.00";
+    const num = parseFloat(value);
+    if (isNaN(num)) return "$0.00";
+    return `$${num.toFixed(2)}`;
+  };
+
+  const formatVolume = (value) => {
+    if (value === null || value === undefined || isNaN(value)) return "0";
+    const num = parseInt(value);
+    if (isNaN(num)) return "0";
+    return num.toLocaleString();
   };
 
   // Card View Component
@@ -146,14 +169,31 @@ export default function EnhancedMetricsTable({
               <div className="bg-gray-50 rounded-lg p-3">
                 <p className="text-xs text-gray-600 mb-1">Price on Release</p>
                 <p className="font-semibold text-gray-900">
-                  {report["Price on Release"]}
+                  {formatCurrency(report["Price on Release"])}
                 </p>
               </div>
 
               <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-600 mb-1">Avg Volume 5D</p>
-                <p className="font-semibold text-gray-900">
-                  {report["Avg Volume Post 5 Days"]?.toLocaleString() || "0"}
+                <p className="text-xs text-gray-600 mb-1">Price Change 30D</p>
+                <p className={`font-semibold ${getPercentageColor(report["Price Change 30 Days (%)"])}`}>
+                  {formatPercentage(report["Price Change 30 Days (%)"])}
+                </p>
+              </div>
+            </div>
+
+            {/* Volume Analysis Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 rounded-lg p-3">
+                <p className="text-xs text-blue-600 mb-1">Pre Volume (30D)</p>
+                <p className="font-semibold text-blue-700">
+                  {formatVolume(report["Avg Volume Pre 30 Days"])}
+                </p>
+              </div>
+
+              <div className="bg-green-50 rounded-lg p-3">
+                <p className="text-xs text-green-600 mb-1">Post Volume (30D)</p>
+                <p className="font-semibold text-green-700">
+                  {formatVolume(report["Avg Volume Post 30 Days"])}
                 </p>
               </div>
             </div>
@@ -222,13 +262,16 @@ export default function EnhancedMetricsTable({
                 Date
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
-                Price
+                Price on Release
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
                 Volume Δ 30D
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
                 Pre-Post Δ 30D
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
+                Price Δ 30D
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
                 Actions
@@ -255,7 +298,7 @@ export default function EnhancedMetricsTable({
                     {report["Publication Date"]}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {report["Price on Release"]}
+                    {formatCurrency(report["Price on Release"])}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-1">
@@ -293,6 +336,22 @@ export default function EnhancedMetricsTable({
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <div className="flex items-center gap-1">
+                      {(report["Price Change 30 Days (%)"] || 0) >= 0 ? (
+                        <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
+                      )}
+                      <span
+                        className={`font-semibold ${getPercentageColor(
+                          report["Price Change 30 Days (%)"]
+                        )}`}
+                      >
+                        {formatPercentage(report["Price Change 30 Days (%)"])}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() =>
                         toggleRowExpansion(report["Report Number"])
@@ -312,31 +371,79 @@ export default function EnhancedMetricsTable({
                 {/* Expanded Row */}
                 {expandedRows.has(report["Report Number"]) && (
                   <tr className="bg-blue-50">
-                    <td colSpan="7" className="px-6 py-4">
+                    <td colSpan="8" className="px-6 py-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="bg-white rounded-lg p-4">
                           <h4 className="font-medium text-gray-900 mb-2">
-                            Volume Metrics
+                            Pre/Post Volume Analysis
                           </h4>
                           <div className="space-y-2">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between border-b pb-1">
                               <span className="text-sm text-gray-600">
-                                Avg Volume 5D:
+                                Pre Volume (30D):
                               </span>
-                              <span className="text-sm font-medium">
-                                {report[
-                                  "Avg Volume Post 5 Days"
-                                ]?.toLocaleString() || "0"}
+                              <span className="text-sm font-medium text-blue-600">
+                                {formatVolume(report["Avg Volume Pre 30 Days"])}
+                              </span>
+                            </div>
+                            <div className="flex justify-between border-b pb-1">
+                              <span className="text-sm text-gray-600">
+                                Post Volume (30D):
+                              </span>
+                              <span className="text-sm font-medium text-green-600">
+                                {formatVolume(report["Avg Volume Post 30 Days"])}
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-sm text-gray-600">
-                                Avg Volume 10D:
+                                Post Volume (5D):
                               </span>
                               <span className="text-sm font-medium">
-                                {report[
-                                  "Avg Volume Post 10 Days"
-                                ]?.toLocaleString() || "0"}
+                                {formatVolume(report["Avg Volume Post 5 Days"])}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                Post Volume (10D):
+                              </span>
+                              <span className="text-sm font-medium">
+                                {formatVolume(report["Avg Volume Post 10 Days"])}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg p-4">
+                          <h4 className="font-medium text-gray-900 mb-2">
+                            Price Analysis
+                          </h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between border-b pb-1">
+                              <span className="text-sm text-gray-600">
+                                Price on Release:
+                              </span>
+                              <span className="text-sm font-medium text-blue-600">
+                                {formatCurrency(report["Price on Release"])}
+                              </span>
+                            </div>
+                            <div className="flex justify-between border-b pb-1">
+                              <span className="text-sm text-gray-600">
+                                Price After 30D:
+                              </span>
+                              <span className="text-sm font-medium text-green-600">
+                                {formatCurrency(report["Price After 30 Days"])}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                Price Change:
+                              </span>
+                              <span
+                                className={`text-sm font-medium ${getPercentageColor(
+                                  report["Price Change 30 Days (%)"]
+                                )}`}
+                              >
+                                {formatPercentage(report["Price Change 30 Days (%)"])}
                               </span>
                             </div>
                           </div>

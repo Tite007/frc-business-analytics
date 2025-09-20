@@ -459,80 +459,38 @@ export async function hasBloombergData(ticker) {
   }
 }
 
-// Bloomberg Readership Data (Dynamic approach)
-export async function getBloombergReadership(
-  ticker,
-  companyName = null,
-  options = {}
-) {
+// Bloomberg Readership Data (Smart Search)
+export async function getBloombergReadership(ticker, companyName = null, options = {}) {
   try {
-    // Check if current ticker has Bloomberg data
-    const hasData = await hasBloombergData(ticker);
-
-    if (!hasData && companyName) {
-      // Try to find primary ticker for this company
-      const primaryTicker = await getBloombergPrimaryTicker(
-        companyName,
-        ticker
-      );
-
-      if (primaryTicker && primaryTicker !== ticker) {
-        // This is a secondary ticker - return link to primary ticker's data
-        return {
-          success: false,
-          isSecondaryTicker: true,
-          primaryTicker: primaryTicker,
-          message: `Bloomberg readership data available for ${companyName} under ticker: ${primaryTicker}`,
-          linkMessage: `View Bloomberg data for ${primaryTicker}`,
-        };
+    // Use smart search instead of direct company lookup
+    const response = await api.get(`/api/bloomberg/smart-company-search/${encodeURIComponent(ticker)}`, {
+      params: {
+        fuzzy_threshold: options.fuzzy_threshold || 0.6
       }
-    }
-
-    // Try to fetch Bloomberg data for this ticker
-    const queryParams = {};
-    if (options.include_embargoed !== undefined)
-      queryParams.include_embargoed = options.include_embargoed;
-    if (options.days) queryParams.days = options.days;
-
-    const response = await api.get(`/api/proxy/bloomberg/company/${ticker}`, {
-      params: queryParams,
     });
 
-    return {
-      success: true,
-      isPrimaryTicker: true,
-      data: response.data,
-    };
-  } catch (error) {
-    console.error("Error fetching Bloomberg readership:", error);
-    const statusCode = error.response?.status;
-
-    if (statusCode === 404 && companyName) {
-      // Try to find primary ticker for this company
-      const primaryTicker = await getBloombergPrimaryTicker(
-        companyName,
-        ticker
-      );
-
-      if (primaryTicker && primaryTicker !== ticker) {
-        return {
-          success: false,
-          isSecondaryTicker: true,
-          primaryTicker: primaryTicker,
-          message: `No Bloomberg data for ${ticker}. Available under ticker: ${primaryTicker}`,
-          linkMessage: `View Bloomberg data for ${primaryTicker}`,
-        };
-      }
+    if (response.data.success) {
+      return {
+        success: true,
+        matchType: response.data.match_type,
+        confidence: response.data.confidence,
+        matchedTicker: response.data.matched_ticker,
+        companyName: response.data.company_name,
+        data: response.data.bloomberg_data
+      };
+    } else {
+      return {
+        success: false,
+        message: response.data.message,
+        suggestions: response.data.suggestions
+      };
     }
-
-    const errorMessage = error.response?.data?.detail || error.message;
+  } catch (error) {
+    console.error("Bloomberg readership error:", error);
     return {
       error: true,
-      message:
-        statusCode === 404
-          ? `No Bloomberg readership data found for ticker '${ticker}'`
-          : errorMessage,
-      status: statusCode,
+      message: error.response?.data?.detail || error.message,
+      status: error.response?.status
     };
   }
 }
