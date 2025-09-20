@@ -31,6 +31,7 @@ import { getBloombergReadership } from "@/lib/api";
 import VolumeTimelineChart from "./VolumeTimelineChart";
 import VolumeCorrelationHeatmap from "./VolumeCorrelationHeatmap";
 import FRCImpactDashboard from "../companies/FRCImpactDashboard";
+import PDFExportButton from "./PDFExportButton";
 
 export default function EnhancedDashboard({
   chartData,
@@ -224,7 +225,16 @@ export default function EnhancedDashboard({
     },
   ];
 
-  // Export function for mobile controls
+  // PDF Export function for mobile controls
+  const exportPDFReport = () => {
+    // Trigger PDF export from the component
+    const pdfButton = document.querySelector('[data-pdf-export]');
+    if (pdfButton) {
+      pdfButton.click();
+    }
+  };
+
+  // CSV Export function for mobile controls
   const exportData = () => {
     const csvContent = [
       [
@@ -305,8 +315,18 @@ export default function EnhancedDashboard({
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
           >
             <ArrowDownTrayIcon className="h-4 w-4" />
-            Export
+            CSV
           </button>
+
+          <PDFExportButton
+            companyData={companyData}
+            chartData={chartData}
+            metricsData={metricsData}
+            analysisData={analysisData}
+            bloombergData={bloombergData}
+            ticker={ticker}
+            className="px-4 py-2"
+          />
         </div>
       </div>
 
@@ -427,9 +447,21 @@ export default function EnhancedDashboard({
               {/* Quick Metrics Overview */}
               {hasMetricsData && (
                 <div className="bg-gray-50 rounded-lg p-4 lg:p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Quick Overview
-                  </h3>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Quick Overview
+                    </h3>
+                    <PDFExportButton
+                      companyData={companyData}
+                      chartData={chartData}
+                      metricsData={metricsData}
+                      analysisData={analysisData}
+                      bloombergData={bloombergData}
+                      ticker={ticker}
+                      className="px-3 py-1.5 text-sm"
+                      data-pdf-export
+                    />
+                  </div>
                   <TableComponent
                     metrics={metricsData || []}
                     ticker={ticker}
@@ -502,6 +534,7 @@ export default function EnhancedDashboard({
                 sortOrder={sortOrder}
                 setSortOrder={setSortOrder}
                 onExport={exportData}
+                onPDFExport={exportPDFReport}
                 resultsCount={filteredMetricsData.length}
                 totalCount={metricsData?.length || 0}
               />

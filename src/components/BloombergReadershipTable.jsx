@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getBloombergReadership, getBloombergSummary } from "@/lib/api";
 
 const BloombergReadershipTable = ({ ticker }) => {
   const [institutionalData, setInstitutionalData] = useState([]);
@@ -11,6 +10,7 @@ const BloombergReadershipTable = ({ ticker }) => {
   const [showEmbargoed, setShowEmbargoed] = useState(true);
   const [sortField, setSortField] = useState("transaction_date");
   const [sortDirection, setSortDirection] = useState("desc");
+  const [matchInfo, setMatchInfo] = useState(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,48 +28,50 @@ const BloombergReadershipTable = ({ ticker }) => {
     try {
       setLoading(true);
       setError(null);
+      setMatchInfo(null);
 
-      // Use the enhanced Bloomberg readership API
-      const institutionalResponse = await getBloombergReadership(ticker, {
-        include_embargoed: showEmbargoed,
-        days: 90,
-      });
+      // Use the new smart company search endpoint
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com";
+      const smartSearchUrl = `${backendUrl}/api/bloomberg/smart-company-search/${encodeURIComponent(ticker)}`;
 
-      // Handle 404 or not found errors - this means Bloomberg endpoints aren't available
-      if (institutionalResponse?.error) {
-        const errorMessage = institutionalResponse.message || "";
-        if (
-          errorMessage.includes("404") ||
-          errorMessage.includes("not found") ||
-          errorMessage.includes("Request failed with status code 404") ||
-          errorMessage.includes("Bloomberg readership endpoints not available") ||
-          errorMessage.includes("No Bloomberg data found for ticker")
-        ) {
-          // Bloomberg endpoints not available - hide component
-          console.log("Bloomberg data not available for", ticker);
-          setInstitutionalData([]);
-          setSummaryData(null);
-          setError(null); // Clear any error to hide component
-          setLoading(false);
-          return;
-        } else {
-          throw new Error(
-            institutionalResponse.message || "Failed to fetch Bloomberg data"
-          );
-        }
+      const response = await fetch(smartSearchUrl);
+      const searchResult = await response.json();
+
+      // Handle search response
+      if (!response.ok) {
+        throw new Error(`Smart search failed with status: ${response.status}`);
       }
 
-      // If we have successful Bloomberg readership data
-      if (institutionalResponse?.success) {
+      if (!searchResult.success) {
+        // No Bloomberg data found
+        console.log("No Bloomberg data found for", ticker);
+        setInstitutionalData([]);
+        setSummaryData(null);
+        setMatchInfo(null);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      // Extract match information and Bloomberg data
+      setMatchInfo({
+        matchType: searchResult.match_type,
+        confidence: searchResult.confidence,
+        matchedTicker: searchResult.matched_ticker,
+        companyName: searchResult.company_name
+      });
+
+      const bloombergData = searchResult.bloomberg_data;
+      if (bloombergData) {
         // Combine revealed and embargoed records based on user preference
         let allRecords = [];
 
-        if (institutionalResponse.revealed_records) {
-          allRecords = [...institutionalResponse.revealed_records];
+        if (bloombergData.revealed_records) {
+          allRecords = [...bloombergData.revealed_records];
         }
 
-        if (showEmbargoed && institutionalResponse.embargoed_records) {
-          allRecords = [...allRecords, ...institutionalResponse.embargoed_records];
+        if (showEmbargoed && bloombergData.embargoed_records) {
+          allRecords = [...allRecords, ...bloombergData.embargoed_records];
         }
 
         // Sort data to show revealed records first, then embargoed records
@@ -86,24 +88,11 @@ const BloombergReadershipTable = ({ ticker }) => {
         });
 
         setInstitutionalData(sortedData);
-        setTotalRecords(sortedData.length); // Use actual data length for client-side pagination
+        setTotalRecords(sortedData.length);
 
-        // Use summary from Bloomberg response
-        if (institutionalResponse.summary) {
-          setSummaryData(institutionalResponse.summary);
-        }
-
-        // Try to fetch summary data separately if not included in institutional response
-        if (!institutionalResponse.summary) {
-          try {
-            const summaryResponse = await getBloombergSummary(ticker);
-            if (summaryResponse?.success && summaryResponse?.summary) {
-              setSummaryData(summaryResponse.summary);
-            }
-          } catch (summaryErr) {
-            // Summary endpoint failed, but we still have institutional data
-            console.warn("Bloomberg summary endpoint failed:", summaryErr);
-          }
+        // Use summary from Bloomberg data
+        if (bloombergData.summary) {
+          setSummaryData(bloombergData.summary);
         }
       } else {
         // No data available
@@ -122,11 +111,13 @@ const BloombergReadershipTable = ({ ticker }) => {
       ) {
         setInstitutionalData([]);
         setSummaryData(null);
+        setMatchInfo(null);
         setError(null); // Clear error to hide component
       } else {
         setError(err.message);
         setInstitutionalData([]);
         setSummaryData(null);
+        setMatchInfo(null);
       }
     } finally {
       setLoading(false);
@@ -322,12 +313,26 @@ const BloombergReadershipTable = ({ ticker }) => {
       <div className="px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              📊 Bloomberg Institutional Readership
-            </h3>
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-2xl font-bold text-gray-900">
+                📊 Bloomberg Institutional Readership
+              </h3>
+              {matchInfo && matchInfo.matchType !== 'exact_ticker' && (
+                <div className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full border border-blue-200">
+                  {matchInfo.matchType === 'fuzzy_ticker' && '📝 Similar ticker found'}
+                  {matchInfo.matchType === 'company_name_exact' && '🏢 Matched by company name'}
+                  {matchInfo.matchType === 'company_name_fuzzy' && '🔍 Similar company found'}
+                  {matchInfo.confidence && ` (${Math.round(matchInfo.confidence * 100)}% match)`}
+                </div>
+              )}
+            </div>
             <p className="text-gray-600">
-              Institutional interest and readership analytics from Bloomberg
-              Terminal
+              Institutional interest and readership analytics from Bloomberg Terminal
+              {matchInfo && matchInfo.matchedTicker !== ticker && (
+                <span className="ml-2 text-blue-600 font-medium">
+                  • Data from {matchInfo.matchedTicker}
+                </span>
+              )}
             </p>
           </div>
 

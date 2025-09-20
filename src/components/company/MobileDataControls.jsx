@@ -18,6 +18,7 @@ export default function MobileDataControls({
   onExport,
   resultsCount,
   totalCount,
+  onPDFExport,
 }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -129,12 +130,22 @@ export default function MobileDataControls({
 
               {/* Actions */}
               <div className="space-y-3">
-                <button
-                  onClick={onExport}
-                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Export Data
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={onExport}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  >
+                    CSV Export
+                  </button>
+                  {onPDFExport && (
+                    <button
+                      onClick={onPDFExport}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      PDF Report
+                    </button>
+                  )}
+                </div>
 
                 {searchTerm && (
                   <button

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthContext";
+import UnauthorizedAccess from "@/components/UnauthorizedAccess";
 import {
   BuildingOfficeIcon,
   DocumentTextIcon,
@@ -31,6 +33,7 @@ import InstitutionsOverview from "@/components/bloomberg/InstitutionsOverview";
 import ReportsOverview from "@/components/bloomberg/ReportsOverview";
 
 export default function BloombergPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [stats, setStats] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [frcReadership, setFrcReadership] = useState(null);
@@ -254,6 +257,30 @@ export default function BloombergPage() {
     fetchData();
   }, [companiesPage, reportsPage]);
 
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show unauthorized access if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <UnauthorizedAccess
+        title="Bloomberg Analytics Access Required"
+        message="Please log in to access Bloomberg institutional analytics and readership data."
+        redirectTo="/"
+      />
+    );
+  }
+
+  // Show data loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

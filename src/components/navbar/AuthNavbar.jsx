@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
@@ -8,6 +8,22 @@ import { useAuth } from "@/components/AuthContext";
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDistributorsDropdownOpen, setIsDistributorsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDistributorsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleSignOut = async () => {
     await logout();
@@ -47,18 +63,64 @@ const Navbar = () => {
             >
               COMPANIES
             </Link>
-            <Link
-              href="/analysis"
-              className="text-white hover:text-blue-300 transition-colors duration-200 font-medium"
-            >
-              ANALYSIS
-            </Link>
-            <Link
-              href="/reports"
-              className="text-white hover:text-blue-300 transition-colors duration-200 font-medium"
-            >
-              REPORTS
-            </Link>
+
+            {/* Distributors Dropdown - Only show for authenticated users */}
+            {isAuthenticated && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsDistributorsDropdownOpen(!isDistributorsDropdownOpen)}
+                  className="text-white hover:text-blue-300 transition-colors duration-200 font-medium flex items-center space-x-1"
+                >
+                  <span>DISTRIBUTORS</span>
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      isDistributorsDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDistributorsDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                    <div className="py-2">
+                      <Link
+                        href="/bloomberg"
+                        className="block px-4 py-2 text-gray-800 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 font-medium"
+                        onClick={() => setIsDistributorsDropdownOpen(false)}
+                      >
+                        📊 Bloomberg Terminal
+                      </Link>
+
+                      <Link
+                        href="/factset"
+                        className="block px-4 py-2 text-gray-800 hover:bg-green-50 hover:text-green-600 transition-colors duration-200 font-medium"
+                        onClick={() => setIsDistributorsDropdownOpen(false)}
+                      >
+                        📈 FactSet
+                      </Link>
+
+                      {/* Placeholder for future distributors */}
+                      <div className="border-t border-gray-100 mt-2 pt-2">
+                        <div className="px-4 py-2 text-gray-400 text-sm italic">
+                          More distributors coming soon...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* CMS Link - Only show for admin users */}
             {user?.role === "admin" && (
               <Link
@@ -163,20 +225,33 @@ const Navbar = () => {
               >
                 COMPANIES
               </Link>
-              <Link
-                href="/analysis"
-                className="text-white hover:text-blue-300 transition-colors duration-200 font-medium py-2"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                ANALYSIS
-              </Link>
-              <Link
-                href="/reports"
-                className="text-white hover:text-blue-300 transition-colors duration-200 font-medium py-2"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                REPORTS
-              </Link>
+
+              {/* Mobile Distributors Section - Only show for authenticated users */}
+              {isAuthenticated && (
+                <div className="py-2">
+                  <div className="text-blue-200 font-medium text-sm mb-2">
+                    DISTRIBUTORS
+                  </div>
+                  <Link
+                    href="/bloomberg"
+                    className="text-white hover:text-blue-300 transition-colors duration-200 font-medium py-1 pl-4 block"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    📊 Bloomberg Terminal
+                  </Link>
+                  <Link
+                    href="/factset"
+                    className="text-white hover:text-green-300 transition-colors duration-200 font-medium py-1 pl-4 block"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    📈 FactSet
+                  </Link>
+                  <div className="text-gray-400 text-xs italic py-1 pl-4">
+                    More distributors coming soon...
+                  </div>
+                </div>
+              )}
+
               {/* CMS Link for mobile - Only show for admin users */}
               {user?.role === "admin" && (
                 <Link
