@@ -1192,8 +1192,47 @@ export async function getCoverageImpactAnalysis(ticker, options = {}) {
 // Get chart data with report timeline
 export async function getChartData(ticker) {
   try {
-    const response = await getCompanyData(ticker, "chart-data");
-    return response;
+    const response = await getCompanyData(ticker, "company");
+    if (response && response.company && response.company.chart_data) {
+      const company = response.company;
+
+      // Calculate oldest and newest report dates from the chart data or reports
+      let oldestReport = null;
+      let newestReport = null;
+
+      if (company.chart_data && company.chart_data.length > 0) {
+        oldestReport = company.chart_data[0].date;
+        newestReport = company.chart_data[company.chart_data.length - 1].date;
+      }
+
+      // If we have reports data with actual dates, use those instead
+      if (company.reports && company.reports.length > 0) {
+        const reportDates = company.reports
+          .map(r => r.publication_date || r.published_date)
+          .filter(Boolean)
+          .sort();
+        if (reportDates.length > 0) {
+          oldestReport = reportDates[0];
+          newestReport = reportDates[reportDates.length - 1];
+        }
+      }
+
+      return {
+        success: true,
+        chart_data: company.chart_data,
+        company_name: company.company_data?.name || company.company_name,
+        total_data_points: company.stock_data_points || company.chart_data.length,
+        currency: company.company_data?.currency || 'USD',
+        reports_coverage: {
+          total_reports: company.reports_count || 0,
+          date_span_days: company.chart_data.length || 0,
+          oldest_report: oldestReport,
+          newest_report: newestReport
+        },
+        data: company
+      };
+    }
+    return { error: true, message: "No chart data available" };
   } catch (error) {
     console.error("Error fetching chart data:", error);
     return { error: true, message: error.message };

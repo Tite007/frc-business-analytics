@@ -89,22 +89,31 @@ const AdvancedFRCChart = ({
     let processedReportDates = reportDates;
     if (!reportDates.length && chartData.reports_coverage?.total_reports > 0) {
       // Generate evenly spaced dates if no specific dates provided
-      const startDate = new Date(chartData.reports_coverage.oldest_report);
-      const endDate = new Date(chartData.reports_coverage.newest_report);
+      const startDate = chartData.reports_coverage.oldest_report
+        ? new Date(chartData.reports_coverage.oldest_report)
+        : new Date(data[0]?.date || Date.now());
+      const endDate = chartData.reports_coverage.newest_report
+        ? new Date(chartData.reports_coverage.newest_report)
+        : new Date(data[data.length - 1]?.date || Date.now());
       const totalReports = chartData.reports_coverage.total_reports;
 
-      processedReportDates = Array.from({ length: totalReports }, (_, i) => {
-        const reportDate = new Date(
-          startDate.getTime() +
-          (i * (endDate.getTime() - startDate.getTime()) / Math.max(totalReports - 1, 1))
-        );
-        return {
-          date: reportDate.toISOString().split('T')[0],
-          reportNumber: i + 1,
-          title: `FRC Report ${i + 1}`,
-          description: `Research report published on ${reportDate.toDateString()}`
-        };
-      });
+      // Validate dates before proceeding
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        processedReportDates = [];
+      } else {
+        processedReportDates = Array.from({ length: totalReports }, (_, i) => {
+          const reportDate = new Date(
+            startDate.getTime() +
+            (i * (endDate.getTime() - startDate.getTime()) / Math.max(totalReports - 1, 1))
+          );
+          return {
+            date: reportDate.toISOString().split('T')[0],
+            reportNumber: i + 1,
+            title: `FRC Report ${i + 1}`,
+            description: `Research report published on ${reportDate.toDateString()}`
+          };
+        });
+      }
     }
 
     // Create shapes for vertical lines
