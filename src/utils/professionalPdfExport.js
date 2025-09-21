@@ -227,27 +227,60 @@ export async function exportProfessionalCompanyReport(
       currentY += 10;
 
       try {
-        // Wait for chart to be rendered
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Wait longer for chart to be fully rendered
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         let chartCaptured = false;
 
         // Try multiple chart selectors for different chart libraries
         const chartSelectors = [
-          ".js-plotly-plot",
+          ".js-plotly-plot", // Primary selector for react-plotly.js (AdvancedFRCChart)
           '[data-testid="chart-container"]',
           ".chart-container",
+          ".plotly", // Alternative plotly selector
+          ".plotly-graph-div", // Another plotly selector
           "canvas", // For Chart.js
           ".recharts-wrapper", // For Recharts
+          '[class*="plotly"]', // Any element with plotly in class name
         ];
 
         let chartElement = null;
-        for (const selector of chartSelectors) {
-          chartElement = document.querySelector(selector);
-          if (chartElement) {
-            console.log(`Found chart with selector: ${selector}`);
-            break;
+
+        // Debug: Log all possible chart elements
+        console.log('=== Chart Detection Debug ===');
+        console.log('Available plotly elements:', document.querySelectorAll('.js-plotly-plot').length);
+        console.log('Available advanced-frc-chart elements:', document.querySelectorAll('.advanced-frc-chart').length);
+        console.log('Available canvas elements:', document.querySelectorAll('canvas').length);
+
+        // First, try to find AdvancedFRCChart specifically
+        const advancedChartContainer = document.querySelector('.advanced-frc-chart');
+        if (advancedChartContainer) {
+          console.log('Found advanced-frc-chart container');
+          const plotlyElement = advancedChartContainer.querySelector('.js-plotly-plot');
+          if (plotlyElement) {
+            chartElement = plotlyElement;
+            console.log('Found AdvancedFRCChart plotly element:', plotlyElement.offsetWidth, 'x', plotlyElement.offsetHeight);
           }
+        }
+
+        // If not found, try general selectors
+        if (!chartElement) {
+          for (const selector of chartSelectors) {
+            const element = document.querySelector(selector);
+            if (element && element.offsetWidth > 0 && element.offsetHeight > 0) {
+              chartElement = element;
+              console.log(`Found chart with selector: ${selector}`, element.offsetWidth, 'x', element.offsetHeight);
+              break;
+            }
+          }
+        }
+
+        if (!chartElement) {
+          console.log('No chart element found! Available elements:');
+          chartSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            console.log(`  ${selector}: ${elements.length} elements`);
+          });
         }
 
         if (chartElement) {
@@ -264,12 +297,12 @@ export async function exportProfessionalCompanyReport(
 
             if (canvas.width > 0 && canvas.height > 0) {
               const imgData = canvas.toDataURL("image/png");
-              const chartWidth = contentWidth;
-              const chartHeight = (canvas.height * chartWidth) / canvas.width;
-              const maxChartHeight = 120;
-              const finalChartHeight = Math.min(chartHeight, maxChartHeight);
 
-              checkPageSpace(finalChartHeight + 10);
+              // Fixed chart size for consistent PDF output
+              const chartWidth = contentWidth;
+              const chartHeight = 100; // Fixed height for consistency regardless of screen size
+
+              checkPageSpace(chartHeight + 10);
 
               pdf.addImage(
                 imgData,
@@ -277,9 +310,9 @@ export async function exportProfessionalCompanyReport(
                 margin,
                 currentY,
                 chartWidth,
-                finalChartHeight
+                chartHeight
               );
-              currentY += finalChartHeight + 20;
+              currentY += chartHeight + 20;
               chartCaptured = true;
             }
           } catch (captureError) {

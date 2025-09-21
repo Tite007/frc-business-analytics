@@ -16,12 +16,49 @@ export default function EnhancedMetricsTable({
   ticker,
 }) {
   const [expandedRows, setExpandedRows] = useState(new Set());
-  const [viewMode, setViewMode] = useState("table"); // "table" or "cards"
+  const [viewMode, setViewMode] = useState("table");
+  const [sortOrder, setSortOrder] = useState("chronological"); // "chronological" or "reverse"
+  const [filterType, setFilterType] = useState("all"); // "all", "positive", "negative"
+
+  // Process and sort metrics data chronologically
+  const processedMetricsData = React.useMemo(() => {
+    if (!metricsData || metricsData.length === 0) return [];
+
+    // Sort by publication date (oldest first) and add chronological numbering
+    const sortedMetrics = [...metricsData].sort((a, b) => {
+      const dateA = new Date(a["Publication Date"]);
+      const dateB = new Date(b["Publication Date"]);
+      return dateA - dateB; // Ascending order (oldest first)
+    }).map((report, index) => ({
+      ...report,
+      chronologicalNumber: index + 1, // 1 = oldest, 2, 3... up to newest
+      originalReportNumber: report["Report Number"] // Keep original for reference
+    }));
+
+    // Apply filtering
+    let filteredMetrics = sortedMetrics;
+    if (filterType === "positive") {
+      filteredMetrics = sortedMetrics.filter(report =>
+        (report["Price Change 30 Days (%)"] || 0) >= 0
+      );
+    } else if (filterType === "negative") {
+      filteredMetrics = sortedMetrics.filter(report =>
+        (report["Price Change 30 Days (%)"] || 0) < 0
+      );
+    }
+
+    // Apply sort order
+    if (sortOrder === "reverse") {
+      filteredMetrics = [...filteredMetrics].reverse();
+    }
+
+    return filteredMetrics;
+  }, [metricsData, sortOrder, filterType]);
 
   if (!metricsData || metricsData.length === 0) {
     return (
       <div className="text-center py-16">
-     n    <div className="text-gray-400 text-5xl mb-4">📊</div>
+        <div className="text-gray-400 text-5xl mb-4">📊</div>
         <p className="text-gray-500 text-lg font-medium">
           No metrics data available for this company.
         </p>
@@ -64,12 +101,12 @@ export default function EnhancedMetricsTable({
         "Post Volume 30D",
         "Avg Volume 5D",
         "Avg Volume 10D",
-        "Volume Δ 30D (%)",
-        "Pre-Post Δ 30D (%)",
+        "Volume Spike 30D (%)",
+        "Pre-Post Volume Change 30D (%)",
         "Price Change 30D (%)",
       ],
-      ...metricsData.map((report) => [
-        report["Report Number"],
+      ...processedMetricsData.map((report) => [
+        report.chronologicalNumber,
         report["Report Title"],
         getCompanyName(),
         ticker,
@@ -79,7 +116,7 @@ export default function EnhancedMetricsTable({
         report["Avg Volume Post 30 Days"]?.toLocaleString() || "0",
         report["Avg Volume Post 5 Days"]?.toLocaleString() || "0",
         report["Avg Volume Post 10 Days"]?.toLocaleString() || "0",
-        report["Volume Change 30 Days (%)"] || 0,
+        report["Volume Spike 30 Days (%)"] || 0,
         report["Volume Change Pre-Post 30 Days (%)"] || 0,
         report["Price Change 30 Days (%)"] || 0,
       ]),
@@ -124,125 +161,6 @@ export default function EnhancedMetricsTable({
     return num.toLocaleString();
   };
 
-  // Card View Component
-  const CardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {metricsData.map((report, index) => (
-        <div
-          key={`${ticker}-${report["Report Number"]}`}
-          className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden"
-        >
-          {/* Card Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold text-lg">
-                  Report #{report["Report Number"]}
-                </h3>
-                <p className="text-blue-100 text-sm">
-                  {report["Publication Date"]}
-                </p>
-              </div>
-              <span className="bg-white bg-opacity-20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
-                {ticker}
-              </span>
-            </div>
-          </div>
-
-          {/* Card Body */}
-          <div className="p-4 space-y-4">
-            {/* Report Title */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-1">
-                Report Title
-              </h4>
-              <p
-                className="text-gray-900 text-sm line-clamp-2"
-                title={report["Report Title"]}
-              >
-                {report["Report Title"]}
-              </p>
-            </div>
-
-            {/* Key Metrics Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-600 mb-1">Price on Release</p>
-                <p className="font-semibold text-gray-900">
-                  {formatCurrency(report["Price on Release"])}
-                </p>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-600 mb-1">Price Change 30D</p>
-                <p className={`font-semibold ${getPercentageColor(report["Price Change 30 Days (%)"])}`}>
-                  {formatPercentage(report["Price Change 30 Days (%)"])}
-                </p>
-              </div>
-            </div>
-
-            {/* Volume Analysis Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <p className="text-xs text-blue-600 mb-1">Pre Volume (30D)</p>
-                <p className="font-semibold text-blue-700">
-                  {formatVolume(report["Avg Volume Pre 30 Days"])}
-                </p>
-              </div>
-
-              <div className="bg-green-50 rounded-lg p-3">
-                <p className="text-xs text-green-600 mb-1">Post Volume (30D)</p>
-                <p className="font-semibold text-green-700">
-                  {formatVolume(report["Avg Volume Post 30 Days"])}
-                </p>
-              </div>
-            </div>
-
-            {/* Performance Indicators */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-600">Volume Δ 30D</span>
-                <div className="flex items-center gap-1">
-                  {(report["Volume Change 30 Days (%)"] || 0) >= 0 ? (
-                    <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
-                  )}
-                  <span
-                    className={`font-semibold ${getPercentageColor(
-                      report["Volume Change 30 Days (%)"]
-                    )}`}
-                  >
-                    {formatPercentage(report["Volume Change 30 Days (%)"])}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-600">Pre-Post Δ 30D</span>
-                <div className="flex items-center gap-1">
-                  {(report["Volume Change Pre-Post 30 Days (%)"] || 0) >= 0 ? (
-                    <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
-                  )}
-                  <span
-                    className={`font-semibold ${getPercentageColor(
-                      report["Volume Change Pre-Post 30 Days (%)"]
-                    )}`}
-                  >
-                    {formatPercentage(
-                      report["Volume Change Pre-Post 30 Days (%)"]
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 
   // Table View Component
   const TableView = () => (
@@ -265,13 +183,16 @@ export default function EnhancedMetricsTable({
                 Price on Release
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
-                Volume Δ 30D
+                <div>Volume Spike</div>
+                <div className="text-xs font-normal opacity-75">vs 30D Avg</div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
-                Pre-Post Δ 30D
+                <div>Pre vs Post</div>
+                <div className="text-xs font-normal opacity-75">30D Volume Change</div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
-                Price Δ 30D
+                <div>Price Change</div>
+                <div className="text-xs font-normal opacity-75">30D Performance</div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
                 Actions
@@ -279,15 +200,15 @@ export default function EnhancedMetricsTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {metricsData.map((report, index) => (
-              <React.Fragment key={`${ticker}-${report["Report Number"]}`}>
+            {processedMetricsData.map((report, index) => (
+              <React.Fragment key={`${ticker}-${report.chronologicalNumber}`}>
                 <tr
                   className={`${
                     index % 2 === 0 ? "bg-white" : "bg-gray-50"
                   } hover:bg-blue-50 transition-colors duration-150`}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {report["Report Number"]}
+                    {report.chronologicalNumber}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
                     <div className="truncate" title={report["Report Title"]}>
@@ -301,23 +222,23 @@ export default function EnhancedMetricsTable({
                     {formatCurrency(report["Price on Release"])}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center gap-1">
-                      {(report["Volume Change 30 Days (%)"] || 0) >= 0 ? (
+                    <div className="flex items-center gap-1" title="Volume spike vs 30-day average (how much volume increased on report day)">
+                      {(report["Volume Spike 30 Days (%)"] || 0) >= 0 ? (
                         <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
                       ) : (
                         <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
                       )}
                       <span
                         className={`font-semibold ${getPercentageColor(
-                          report["Volume Change 30 Days (%)"]
+                          report["Volume Spike 30 Days (%)"]
                         )}`}
                       >
-                        {formatPercentage(report["Volume Change 30 Days (%)"])}
+                        {formatPercentage(report["Volume Spike 30 Days (%)"])}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1" title="Comparison of average volume 30 days before vs 30 days after report">
                       {(report["Volume Change Pre-Post 30 Days (%)"] || 0) >=
                       0 ? (
                         <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
@@ -354,12 +275,12 @@ export default function EnhancedMetricsTable({
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() =>
-                        toggleRowExpansion(report["Report Number"])
+                        toggleRowExpansion(report.chronologicalNumber)
                       }
                       className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
                     >
                       <EyeIcon className="h-4 w-4" />
-                      {expandedRows.has(report["Report Number"]) ? (
+                      {expandedRows.has(report.chronologicalNumber) ? (
                         <ChevronUpIcon className="h-4 w-4" />
                       ) : (
                         <ChevronDownIcon className="h-4 w-4" />
@@ -369,7 +290,7 @@ export default function EnhancedMetricsTable({
                 </tr>
 
                 {/* Expanded Row */}
-                {expandedRows.has(report["Report Number"]) && (
+                {expandedRows.has(report.chronologicalNumber) && (
                   <tr className="bg-blue-50">
                     <td colSpan="8" className="px-6 py-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -491,9 +412,46 @@ export default function EnhancedMetricsTable({
         </table>
       </div>
 
-      {/* Mobile Table */}
-      <div className="lg:hidden">
-        <CardView />
+      {/* Mobile Table - Use responsive table view */}
+      <div className="lg:hidden overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gradient-to-r from-slate-800 to-slate-700">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase">Report #</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase">Title</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase">Date</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase">Price</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase">Vol. Spike</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase">Pre/Post</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase">Price Δ</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {processedMetricsData.map((report, index) => (
+              <tr key={`mobile-${ticker}-${report.chronologicalNumber}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-4 py-3 text-sm font-medium text-gray-900">{report.chronologicalNumber}</td>
+                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">{report["Report Title"]}</td>
+                <td className="px-4 py-3 text-sm text-gray-500">{report["Publication Date"]}</td>
+                <td className="px-4 py-3 text-sm text-gray-900">{formatCurrency(report["Price on Release"])}</td>
+                <td className="px-4 py-3 text-sm">
+                  <span className={`font-semibold ${getPercentageColor(report["Volume Spike 30 Days (%)"])}`}>
+                    {formatPercentage(report["Volume Spike 30 Days (%)"])}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <span className={`font-semibold ${getPercentageColor(report["Volume Change Pre-Post 30 Days (%)"])}`}>
+                    {formatPercentage(report["Volume Change Pre-Post 30 Days (%)"])}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <span className={`font-semibold ${getPercentageColor(report["Price Change 30 Days (%)"])}`}>
+                    {formatPercentage(report["Price Change 30 Days (%)"])}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -508,38 +466,76 @@ export default function EnhancedMetricsTable({
               Report Performance Metrics
             </h3>
             <p className="text-gray-600">
-              Comprehensive analysis of {metricsData.length} report
-              {metricsData.length !== 1 ? "s" : ""} performance
+              Comprehensive analysis of {processedMetricsData.length} report
+              {processedMetricsData.length !== 1 ? "s" : ""} performance
+              {processedMetricsData.length !== metricsData.length &&
+                ` (filtered from ${metricsData.length} total)`
+              }
             </p>
           </div>
 
-          <div className="flex items-center gap-3 mt-4 sm:mt-0">
-            {/* View Mode Toggle */}
+          <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
+            {/* Sort Order Toggle */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setViewMode("table")}
+                onClick={() => setSortOrder("chronological")}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === "table"
+                  sortOrder === "chronological"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Table
+                1→n
               </button>
               <button
-                onClick={() => setViewMode("cards")}
+                onClick={() => setSortOrder("reverse")}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === "cards"
+                  sortOrder === "reverse"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Cards
+                n→1
               </button>
             </div>
 
+            {/* Filter Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setFilterType("all")}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  filterType === "all"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilterType("positive")}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  filterType === "positive"
+                    ? "bg-white text-green-700 shadow-sm"
+                    : "text-gray-600 hover:text-green-700"
+                }`}
+              >
+                +
+              </button>
+              <button
+                onClick={() => setFilterType("negative")}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  filterType === "negative"
+                    ? "bg-white text-red-700 shadow-sm"
+                    : "text-gray-600 hover:text-red-700"
+                }`}
+              >
+                -
+              </button>
+            </div>
+
+
             <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-              {metricsData.length} Reports
+              {processedMetricsData.length} Reports
             </span>
 
             <button
@@ -555,7 +551,7 @@ export default function EnhancedMetricsTable({
 
       {/* Content */}
       <div className="p-6">
-        {viewMode === "table" ? <TableView /> : <CardView />}
+        <TableView />
       </div>
     </div>
   );

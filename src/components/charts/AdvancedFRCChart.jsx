@@ -35,6 +35,14 @@ const AdvancedFRCChart = ({
 
     const data = chartData.chart_data;
 
+    // Debug logging
+    console.log('Chart data received:', {
+      chartDataLength: data.length,
+      reportDatesLength: reportDates?.length || 0,
+      reportDates: reportDates,
+      reportsCoverage: chartData.reports_coverage
+    });
+
     // Create main price trace (line or candlestick)
     const priceTrace = showCandlestick ? {
       x: data.map(d => d.date),
@@ -86,8 +94,19 @@ const AdvancedFRCChart = ({
     } : null;
 
     // Process report dates - use provided dates or generate from API data
-    let processedReportDates = reportDates;
-    if (!reportDates.length && chartData.reports_coverage?.total_reports > 0) {
+    let processedReportDates = [];
+
+    // If we have actual report data passed in, use it (already sorted by date in API)
+    if (reportDates && reportDates.length > 0) {
+      processedReportDates = reportDates.map((report) => ({
+        date: report.date || report.publication_date,
+        reportNumber: report.reportNumber || report.id, // Use the chronological number from API
+        title: report.title || `Report ${report.reportNumber}`,
+        description: report.description || report.title || `Research report ${report.reportNumber}`,
+        report_type: report.report_type,
+        is_pdf: report.is_pdf
+      })).filter(report => report.date); // Only include reports with valid dates
+    } else if (chartData.reports_coverage?.total_reports > 0) {
       // Generate evenly spaced dates if no specific dates provided
       const startDate = chartData.reports_coverage.oldest_report
         ? new Date(chartData.reports_coverage.oldest_report)
@@ -227,7 +246,7 @@ const AdvancedFRCChart = ({
   }
 
   return (
-    <div className="w-full bg-white rounded-lg shadow-lg border">
+    <div className="w-full bg-white rounded-lg shadow-lg border advanced-frc-chart">
       {/* Enhanced Header */}
       <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex justify-between items-start">
@@ -345,9 +364,18 @@ const AdvancedFRCChart = ({
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-900">
-                    Report {report.reportNumber}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">
+                      Report {report.reportNumber}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      report.is_pdf
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {report.is_pdf ? 'PDF' : 'Digital'}
+                    </span>
+                  </div>
                   <span className="text-sm text-gray-500">{report.date}</span>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">

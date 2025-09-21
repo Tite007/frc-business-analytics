@@ -83,20 +83,23 @@ export default function FRCImpactDashboard({ company, className = "" }) {
     const stockData = chartData?.chart_data || [];
 
     const hasReports = (reportsData.total_reports || company.reports_count || 0) > 0;
-    const hasDigitalReports = company.status === "success";
-    const hasPdfReports = company.status === "frc_covered_no_digital_reports";
+    const digitalReportsCount = reportsData.digital_reports || 0;
+    const pdfReportsCount = reportsData.pdf_reports || 0;
+    const hasDigitalReports = digitalReportsCount > 0;
+    const hasPdfReports = pdfReportsCount > 0;
     const hasStockData = stockData.length > 0 || (company.stock_data_points || 0) > 0;
 
     let summary = {
       coverage_status: "not_covered",
       total_reports: reportsData.total_reports || company.reports_count || 0,
-      digital_reports: hasDigitalReports ? (reportsData.total_reports || company.reports_count || 0) : 0,
-      pdf_reports: hasPdfReports ? 1 : 0,
+      digital_reports: digitalReportsCount,
+      pdf_reports: pdfReportsCount,
       stock_data_points: chartData?.total_data_points || company.stock_data_points || 0,
-      first_report_date: reportsData.oldest_report || company.first_report_date || company.analysis_date,
-      latest_report_date: reportsData.newest_report || company.last_report_date || company.analysis_date,
+      first_report_date: reportsData.oldest_report_date || reportsData.oldest_report || company.first_report_date || company.analysis_date,
+      latest_report_date: reportsData.newest_report_date || reportsData.newest_report || company.last_report_date || company.analysis_date,
       frc_covered: company.frc_covered || hasReports,
       date_span_days: reportsData.date_span_days || 0,
+      coverage_period_days: reportsData.coverage_period_days || 0,
       data_range: chartData?.date_range || null,
     };
 
@@ -266,6 +269,7 @@ export default function FRCImpactDashboard({ company, className = "" }) {
                   <h4 className="text-lg font-medium text-gray-900 mb-4">Stock Price with FRC Report Timeline</h4>
                   <AdvancedFRCChart
                     chartData={chartData}
+                    reportDates={chartData.actual_reports || []}
                     ticker={company.ticker}
                     companyName={company.company_name}
                     height={500}

@@ -63,7 +63,7 @@ export async function getCompanyData(ticker, endpoint = "companies") {
         url = `/api/frc/company/${ticker}/analysis`;
         break;
       case "reports":
-        url = `/api/reports/${ticker}`;
+        url = `/api/frc/company/${ticker}/reports`;
         break;
       case "stats":
         url = "/api/frc/stats";
@@ -1192,30 +1192,38 @@ export async function getCoverageImpactAnalysis(ticker, options = {}) {
 // Get chart data with report timeline
 export async function getChartData(ticker) {
   try {
-    const response = await getCompanyData(ticker, "company");
-    if (response && response.company && response.company.chart_data) {
-      const company = response.company;
+    // Get company data and reports separately
+    const [companyResponse, reportsResponse] = await Promise.all([
+      getCompanyData(ticker, "company"),
+      getCompanyData(ticker, "reports")
+    ]);
 
-      // Calculate oldest and newest report dates from the chart data or reports
-      let oldestReport = null;
-      let newestReport = null;
+    if (companyResponse && companyResponse.company && companyResponse.company.chart_data) {
+      const company = companyResponse.company;
 
-      if (company.chart_data && company.chart_data.length > 0) {
-        oldestReport = company.chart_data[0].date;
-        newestReport = company.chart_data[company.chart_data.length - 1].date;
-      }
+      // Extract actual reports with full details and sort by date first
+      const actualReports = reportsResponse?.reports ? reportsResponse.reports
+        .sort((a, b) => new Date(a.publication_date) - new Date(b.publication_date))
+        .map((report, index) => ({
+          id: index + 1,
+          title: report.title,
+          publication_date: report.publication_date,
+          date: report.publication_date,
+          description: report.title,
+          reportNumber: index + 1, // This will be 1 for oldest, 2, 3... up to newest
+          report_type: report.report_type,
+          is_pdf: report.is_pdf,
+          pdf_path: report.pdf_path
+        })) : [];
 
-      // If we have reports data with actual dates, use those instead
-      if (company.reports && company.reports.length > 0) {
-        const reportDates = company.reports
-          .map(r => r.publication_date || r.published_date)
-          .filter(Boolean)
-          .sort();
-        if (reportDates.length > 0) {
-          oldestReport = reportDates[0];
-          newestReport = reportDates[reportDates.length - 1];
-        }
-      }
+      // Calculate oldest and newest report dates from actual reports
+      const reportDates = actualReports.map(r => r.publication_date).filter(Boolean);
+      const oldestReportDate = reportDates.length > 0 ? reportDates[0] : null;
+      const newestReportDate = reportDates.length > 0 ? reportDates[reportDates.length - 1] : null;
+
+      // Use chart data range for oldest/newest (not report dates)
+      const oldestReport = company.chart_data[0]?.date;
+      const newestReport = company.chart_data[company.chart_data.length - 1]?.date;
 
       return {
         success: true,
@@ -1224,10 +1232,22 @@ export async function getChartData(ticker) {
         total_data_points: company.stock_data_points || company.chart_data.length,
         currency: company.company_data?.currency || 'USD',
         reports_coverage: {
-          total_reports: company.reports_count || 0,
+          total_reports: actualReports.length,
+          digital_reports: reportsResponse?.digital_reports || 0,
+          pdf_reports: reportsResponse?.pdf_reports || 0,
           date_span_days: company.chart_data.length || 0,
           oldest_report: oldestReport,
-          newest_report: newestReport
+          newest_report: newestReport,
+          oldest_report_date: oldestReportDate,
+          newest_report_date: newestReportDate,
+          coverage_period_days: oldestReportDate && newestReportDate ?
+            Math.ceil((new Date(newestReportDate) - new Date(oldestReportDate)) / (1000 * 60 * 60 * 24)) : 0
+        },
+        actual_reports: actualReports,
+        reports_stats: {
+          total: reportsResponse?.total_reports || 0,
+          digital: reportsResponse?.digital_reports || 0,
+          pdf: reportsResponse?.pdf_reports || 0
         },
         data: company
       };

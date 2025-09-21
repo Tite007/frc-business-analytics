@@ -94,7 +94,7 @@ export default function EnhancedDashboard({
     const totalReports = metricsData.length;
     const avgVolumeChange =
       metricsData.reduce(
-        (sum, report) => sum + (report["Volume Change 30 Days (%)"] || 0),
+        (sum, report) => sum + (report["Volume Spike 30 Days (%)"] || 0),
         0
       ) / totalReports;
     const avgPrePostChange =
@@ -104,7 +104,7 @@ export default function EnhancedDashboard({
         0
       ) / totalReports;
     const positiveReports = metricsData.filter(
-      (report) => (report["Volume Change 30 Days (%)"] || 0) > 0
+      (report) => (report["Volume Spike 30 Days (%)"] || 0) > 0
     ).length;
 
     return {
