@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { exportProfessionalCompanyReport } from '@/utils/professionalPdfExport';
-import { getBloombergReadership } from '@/lib/api';
+import { getBloombergV3Analytics, getBloombergResolveCompany } from '@/lib/api';
 
 export default function PDFExportButton({
   companyData,
@@ -28,45 +28,36 @@ export default function PDFExportButton({
 
       if (!fetchedBloombergData && ticker) {
         try {
-          console.log('Fetching Bloomberg readership data for ticker:', ticker);
+          console.log('Fetching Bloomberg data for ticker:', ticker);
 
           // Get company name for the Bloomberg lookup
           const companyName = companyData?.company_name ||
                               companyData?.data?.company_profile?.name ||
                               ticker;
 
-          // Fetch the Bloomberg readership data using the new API structure
-          const bloombergResponse = await getBloombergReadership(ticker, companyName, {
-            include_embargoed: false, // Only get revealed records for PDF
-            days: 90,
-          });
+          // First, try to get analytics for the specific ticker
+          let analytics = await getBloombergV3Analytics(ticker).catch(() => null);
 
-          console.log('Bloomberg readership response:', bloombergResponse);
+          // If no data found with ticker and we have a company name, try resolve-company API
+          if ((!analytics || !analytics.top_institutions || analytics.top_institutions.length === 0) && companyName) {
+            console.log(`No data found for ticker ${ticker}, trying company name: ${companyName}`);
 
-          if (bloombergResponse?.success && bloombergResponse?.data) {
-            // Extract the bloomberg_data from the response
-            const blombergData = bloombergResponse.data;
-            fetchedBloombergData = {
-              summary: blombergData.summary || {},
-              revealed_records: blombergData.revealed_records || [],
-              embargoed_records: blombergData.embargoed_records || [],
-              institutional_records: blombergData.institutional_records || [],
-              analytics: blombergData.analytics || {}
-            };
-            console.log('Bloomberg readership data fetched:', fetchedBloombergData);
-            console.log('Revealed records count:', fetchedBloombergData.revealed_records.length);
-            console.log('Embargoed records count:', fetchedBloombergData.embargoed_records.length);
-          } else if (bloombergResponse?.isSecondaryTicker) {
-            // Handle secondary ticker case
-            console.log('Secondary ticker detected, Bloomberg data available under:', bloombergResponse.primaryTicker);
-            fetchedBloombergData = {
-              isSecondaryTicker: true,
-              primaryTicker: bloombergResponse.primaryTicker,
-              message: bloombergResponse.message
-            };
+            const resolvedData = await getBloombergResolveCompany(companyName).catch(() => null);
+
+            if (resolvedData && resolvedData.success) {
+              console.log(`✅ Successfully resolved data for ${companyName} using Bloomberg ticker: ${resolvedData.company_match?.bloomberg_ticker}`);
+
+              // Use the resolve-company API response directly
+              fetchedBloombergData = resolvedData;
+            }
+          } else if (analytics) {
+            // Use analytics API response
+            fetchedBloombergData = analytics;
           }
+
+          console.log('Bloomberg data fetched for PDF:', fetchedBloombergData);
         } catch (bloombergError) {
-          console.warn('Bloomberg readership data not available for PDF export:', bloombergError);
+          console.warn('Bloomberg data not available for PDF export:', bloombergError);
         }
       }
 

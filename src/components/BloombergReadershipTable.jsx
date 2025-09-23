@@ -1,188 +1,151 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import {
+  EyeIcon,
+  BuildingOfficeIcon,
+  GlobeAltIcon,
+  ShieldExclamationIcon,
+  ChartBarIcon,
+  CalendarIcon,
+  DocumentTextIcon,
+  FunnelIcon,
+  ArrowPathIcon,
+  TrophyIcon,
+  FireIcon,
+  CubeTransparentIcon
+} from "@heroicons/react/24/outline";
+import {
+  getBloombergV3Analytics,
+  getBloombergFRCCompanyMatch,
+  getBloombergV3Reports,
+  getBloombergResolveCompany
+} from "@/lib/api";
 
-const BloombergReadershipTable = ({ ticker }) => {
-  const [institutionalData, setInstitutionalData] = useState([]);
-  const [summaryData, setSummaryData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showEmbargoed, setShowEmbargoed] = useState(true);
-  const [sortField, setSortField] = useState("transaction_date");
-  const [sortDirection, setSortDirection] = useState("desc");
-  const [matchInfo, setMatchInfo] = useState(null);
+const BloombergReadershipTable = ({ ticker, companyName }) => {
+  const [dashboardData, setDashboardData] = useState({
+    analytics: null,
+    reports: [],
+    frcMatching: null,
+    loading: true,
+    error: null
+  });
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [totalRecords, setTotalRecords] = useState(0);
+  const [filters, setFilters] = useState({
+    sortBy: "post_date",
+    sortOrder: "desc",
+    timeRange: 90
+  });
+
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 20
+  });
 
   useEffect(() => {
     if (ticker) {
-      setCurrentPage(1); // Reset to first page when ticker or filters change
-      fetchBloombergData();
+      fetchCompanyReadership();
     }
-  }, [ticker, showEmbargoed]);
+  }, [ticker, companyName, filters.timeRange]);
 
-  const fetchBloombergData = async () => {
+  const fetchCompanyReadership = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      setMatchInfo(null);
+      setDashboardData(prev => ({ ...prev, loading: true, error: null }));
 
-      // Use the new smart company search endpoint
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://dashboard.researchfrc.com";
-      const smartSearchUrl = `${backendUrl}/api/bloomberg/smart-company-search/${encodeURIComponent(ticker)}`;
+      // First, try to get analytics for the specific ticker
+      let analytics = await getBloombergV3Analytics(ticker).catch(() => null);
 
-      const response = await fetch(smartSearchUrl);
-      const searchResult = await response.json();
+      // If no data found with ticker and we have a company name, try resolve-company API
+      if ((!analytics || !analytics.top_institutions || analytics.top_institutions.length === 0) && companyName) {
+        console.log(`No data found for ticker ${ticker}, trying company name: ${companyName}`);
 
-      // Handle search response
-      if (!response.ok) {
-        throw new Error(`Smart search failed with status: ${response.status}`);
+        const resolvedData = await getBloombergResolveCompany(companyName).catch(() => null);
+
+        if (resolvedData && resolvedData.success) {
+          // Transform the resolved data to match analytics structure
+          analytics = {
+            summary: {
+              total_reads: resolvedData.readership_analytics?.total_reads || 0,
+              unique_institutions: resolvedData.readership_analytics?.unique_institutions || 0,
+              total_reports: resolvedData.readership_analytics?.reports_analyzed || 0,
+              average_transparency_rate: resolvedData.readership_analytics?.transparency_rate || 0,
+              embargo_rate: ((resolvedData.readership_analytics?.embargoed_reads || 0) / (resolvedData.readership_analytics?.total_reads || 1)) * 100
+            },
+            top_institutions: (resolvedData.institutions || []).map((inst, index) => ({
+              institution_name: inst,
+              read_count: Math.floor((resolvedData.readership_analytics?.total_reads || 0) / (resolvedData.institutions?.length || 1))
+            })),
+            recent_reads: resolvedData.recent_activity || []
+          };
+
+          console.log(`✅ Successfully resolved data for ${companyName} using Bloomberg ticker: ${resolvedData.company_match?.bloomberg_ticker}`);
+        }
       }
 
-      if (!searchResult.success) {
-        // No Bloomberg data found
-        console.log("No Bloomberg data found for", ticker);
-        setInstitutionalData([]);
-        setSummaryData(null);
-        setMatchInfo(null);
-        setError(null);
-        setLoading(false);
-        return;
-      }
+      // Fetch additional data in parallel
+      const [reports, frcMatching] = await Promise.all([
+        // Get reports for the company
+        getBloombergV3Reports({
+          ticker: ticker,
+          limit: 50,
+          sort_by: filters.sortBy,
+          sort_order: filters.sortOrder === "desc" ? -1 : 1
+        }).catch(() => []),
 
-      // Extract match information and Bloomberg data
-      setMatchInfo({
-        matchType: searchResult.match_type,
-        confidence: searchResult.confidence,
-        matchedTicker: searchResult.matched_ticker,
-        companyName: searchResult.company_name
+        // Get FRC matching data
+        getBloombergFRCCompanyMatch(ticker, { test_mode: true }).catch(() => null)
+      ]);
+
+      setDashboardData({
+        analytics: analytics || null,
+        reports: reports || [],
+        frcMatching: frcMatching || null,
+        loading: false,
+        error: null
       });
 
-      const bloombergData = searchResult.bloomberg_data;
-      if (bloombergData) {
-        // Combine revealed and embargoed records based on user preference
-        let allRecords = [];
-
-        if (bloombergData.revealed_records) {
-          allRecords = [...bloombergData.revealed_records];
-        }
-
-        if (showEmbargoed && bloombergData.embargoed_records) {
-          allRecords = [...allRecords, ...bloombergData.embargoed_records];
-        }
-
-        // Sort data to show revealed records first, then embargoed records
-        const sortedData = allRecords.sort((a, b) => {
-          // Primary sort: revealed records first (is_embargoed: false first)
-          if (a.is_embargoed !== b.is_embargoed) {
-            return a.is_embargoed ? 1 : -1; // false (revealed) comes before true (embargoed)
-          }
-
-          // Secondary sort: by transaction_date (newest first) within each group
-          const dateA = new Date(a.transaction_date);
-          const dateB = new Date(b.transaction_date);
-          return dateB - dateA;
-        });
-
-        setInstitutionalData(sortedData);
-        setTotalRecords(sortedData.length);
-
-        // Use summary from Bloomberg data
-        if (bloombergData.summary) {
-          setSummaryData(bloombergData.summary);
-        }
-      } else {
-        // No data available
-        setInstitutionalData([]);
-        setSummaryData(null);
-      }
-    } catch (err) {
-      console.error("Error fetching Bloomberg data:", err);
-      // For 404 or endpoint not found errors, hide the component
-      const errorMessage = err.message || "";
-      if (
-        errorMessage.includes("404") ||
-        errorMessage.includes("not found") ||
-        errorMessage.includes("Request failed with status code 404") ||
-        errorMessage.includes("Bloomberg readership endpoints not available")
-      ) {
-        setInstitutionalData([]);
-        setSummaryData(null);
-        setMatchInfo(null);
-        setError(null); // Clear error to hide component
-      } else {
-        setError(err.message);
-        setInstitutionalData([]);
-        setSummaryData(null);
-        setMatchInfo(null);
-      }
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching company readership data:", error);
+      setDashboardData(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message
+      }));
     }
   };
 
-  const sortData = (field) => {
-    if (institutionalData.length === 0) return;
+  // Calculate analytics from the data
+  const analytics = {
+    summary: dashboardData.analytics ? {
+      totalReads: dashboardData.analytics.summary?.total_reads || 0,
+      totalInstitutions: dashboardData.analytics.summary?.unique_institutions || 0,
+      totalReports: dashboardData.analytics.summary?.total_reports || dashboardData.reports.length,
+      transparencyRate: dashboardData.analytics.summary?.average_transparency_rate || 0,
+      embargoRate: dashboardData.analytics.summary?.embargo_rate || 0
+    } : null,
 
-    const direction =
-      field === sortField && sortDirection === "asc" ? "desc" : "asc";
-    setSortField(field);
-    setSortDirection(direction);
+    topInstitutions: dashboardData.analytics?.top_institutions || [],
+    recentActivity: dashboardData.reports.filter(report => {
+      const daysAgo = (Date.now() - new Date(report.post_date).getTime()) / (1000 * 60 * 60 * 24);
+      return daysAgo <= 30;
+    }),
 
-    const sorted = [...institutionalData].sort((a, b) => {
-      let aValue = a[field];
-      let bValue = b[field];
+    countryDistribution: {},
 
-      // Handle date sorting
-      if (field === "transaction_date" || field === "post_date") {
-        aValue = new Date(aValue);
-        bValue = new Date(bValue);
-      }
-
-      // Handle string sorting
-      if (typeof aValue === "string") {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
-
-      if (direction === "asc") {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    setInstitutionalData(sorted);
+    frcInsights: dashboardData.frcMatching ? {
+      matchRate: (dashboardData.frcMatching.summary?.successful_matches / dashboardData.frcMatching.summary?.frc_reports_count * 100) || 0,
+      institutionalInterest: dashboardData.frcMatching.summary?.total_institutional_interest || 0,
+      reportsCovered: dashboardData.frcMatching.summary?.frc_reports_count || 0
+    } : null
   };
 
-  const getCountryFlag = (country) => {
-    const flags = {
-      "United States": "🇺🇸",
-      Canada: "🇨🇦",
-      "United Kingdom": "🇬🇧",
-      Germany: "🇩🇪",
-      France: "🇫🇷",
-      Japan: "🇯🇵",
-      Australia: "🇦🇺",
-      Switzerland: "🇨🇭",
-      Netherlands: "🇳🇱",
-      Italy: "🇮🇹",
-      Spain: "🇪🇸",
-      Sweden: "🇸🇪",
-      Norway: "🇳🇴",
-      Denmark: "🇩🇰",
-      Finland: "🇫🇮",
-      Belgium: "🇧🇪",
-      Austria: "🇦🇹",
-      Ireland: "🇮🇪",
-      Luxembourg: "🇱🇺",
-      Portugal: "🇵🇹",
-    };
-    return flags[country] || "🌍";
-  };
+  // Filter and paginate institutions
+  const filteredInstitutions = analytics.topInstitutions;
+
+  const totalPages = Math.ceil(filteredInstitutions.length / pagination.itemsPerPage);
+  const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+  const currentPageData = filteredInstitutions.slice(startIndex, startIndex + pagination.itemsPerPage);
+
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -190,70 +153,40 @@ const BloombergReadershipTable = ({ ticker }) => {
       return new Date(dateString).toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+        day: "numeric"
       });
     } catch {
       return "Invalid Date";
     }
   };
 
-  const getSortIcon = (field) => {
-    if (sortField !== field) return "↕️";
-    return sortDirection === "asc" ? "↑" : "↓";
-  };
-
-  // Client-side pagination functions
-  const totalPages = Math.ceil(totalRecords / itemsPerPage);
-  const startRecord = (currentPage - 1) * itemsPerPage + 1;
-  const endRecord = Math.min(currentPage * itemsPerPage, totalRecords);
-
-  // Get current page data
-  const currentPageData = institutionalData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const goToPage = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  const changeItemsPerPage = (newItemsPerPage) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page
-  };
-
-  // Show placeholder if no data available (Bloomberg endpoints not available)
-  if (!loading && !error && institutionalData.length === 0 && !summaryData) {
+  // Show placeholder if no data
+  if (!dashboardData.loading && !dashboardData.error && !analytics.summary && dashboardData.reports.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                📊 Bloomberg Terminal Readership
+              <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+                Bloomberg Readership Analytics
               </h3>
               <p className="text-gray-600">
-                Professional readership activity from Bloomberg Terminal users
+                Institutional readership data for {ticker} ({companyName || 'Company'})
               </p>
             </div>
           </div>
         </div>
         <div className="p-8 text-center">
-          <div className="text-gray-400 text-5xl mb-4">🔄</div>
+          <div className="text-gray-400 text-5xl mb-4">📊</div>
           <h4 className="text-xl font-bold text-gray-600 mb-2">
-            Bloomberg Readership Data Not Available
+            No Bloomberg Readership Data
           </h4>
           <p className="text-gray-500 mb-4">
-            Bloomberg readership endpoints are not currently available for this
-            environment.
+            No institutional readership data is currently available for {ticker}.
           </p>
           <p className="text-gray-400 text-sm">
-            This feature requires Bloomberg Terminal integration and may be
-            available in the production environment.
+            This company may not have Bloomberg Terminal coverage or readership data may be pending.
           </p>
         </div>
       </div>
@@ -261,45 +194,44 @@ const BloombergReadershipTable = ({ ticker }) => {
   }
 
   // Loading state
-  if (loading) {
+  if (dashboardData.loading) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            📊 Bloomberg Institutional Readership
+          <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+            Bloomberg Readership Analytics
           </h3>
-          <p className="text-gray-600">Loading Bloomberg readership data...</p>
+          <p className="text-gray-600">Loading readership data for {ticker}...</p>
         </div>
         <div className="p-16 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">
-            Fetching institutional interest data...
-          </p>
+          <p className="text-gray-500">Analyzing institutional interest...</p>
         </div>
       </div>
     );
   }
 
   // Error state
-  if (error) {
+  if (dashboardData.error) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="px-8 py-6 bg-gradient-to-r from-red-50 to-pink-50 border-b border-gray-200">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            📊 Bloomberg Institutional Readership
+          <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <DocumentTextIcon className="h-6 w-6 text-red-600" />
+            Bloomberg Readership Analytics
           </h3>
-          <p className="text-red-600">Error loading Bloomberg data</p>
+          <p className="text-red-600">Error loading readership data</p>
         </div>
         <div className="p-16 text-center">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <p className="text-red-600 font-medium">
-            Failed to load Bloomberg data
-          </p>
-          <p className="text-gray-500 text-sm mt-2">{error}</p>
+          <p className="text-red-600 font-medium">Failed to load Bloomberg data</p>
+          <p className="text-gray-500 text-sm mt-2">{dashboardData.error}</p>
           <button
-            onClick={fetchBloombergData}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            onClick={fetchCompanyReadership}
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
           >
+            <ArrowPathIcon className="h-4 w-4" />
             Retry
           </button>
         </div>
@@ -309,371 +241,257 @@ const BloombergReadershipTable = ({ ticker }) => {
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Header with Summary Stats */}
+      {/* Enhanced Header with Company Analytics */}
       <div className="px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-2xl font-bold text-gray-900">
-                📊 Bloomberg Institutional Readership
+              <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+                Bloomberg Institutional Readership
               </h3>
-              {matchInfo && matchInfo.matchType !== 'exact_ticker' && (
-                <div className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full border border-blue-200">
-                  {matchInfo.matchType === 'fuzzy_ticker' && '📝 Similar ticker found'}
-                  {matchInfo.matchType === 'company_name_exact' && '🏢 Matched by company name'}
-                  {matchInfo.matchType === 'company_name_fuzzy' && '🔍 Similar company found'}
-                  {matchInfo.confidence && ` (${Math.round(matchInfo.confidence * 100)}% match)`}
-                </div>
-              )}
+              <div className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full border border-blue-200">
+                {ticker}
+              </div>
             </div>
             <p className="text-gray-600">
-              Institutional interest and readership analytics from Bloomberg Terminal
-              {matchInfo && matchInfo.matchedTicker !== ticker && (
-                <span className="ml-2 text-blue-600 font-medium">
-                  • Data from {matchInfo.matchedTicker}
-                </span>
-              )}
+              Institutional readership analytics for {companyName || ticker} from Bloomberg Terminal
             </p>
           </div>
 
-          {/* Summary Stats */}
-          {summaryData && (
+          {/* Enhanced KPI Cards */}
+          {analytics.summary && (
             <div className="mt-4 lg:mt-0 grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="text-center bg-white bg-opacity-70 rounded-lg p-3">
-                <div className="text-xl font-bold text-blue-600">
-                  {summaryData.total_readership_records || 0}
+              <div className="text-center bg-white/70 rounded-lg p-3 border border-blue-100">
+                <div className="text-xl font-bold text-blue-600 flex items-center justify-center gap-1">
+                  <EyeIcon className="h-4 w-4" />
+                  {analytics.summary.totalReads.toLocaleString()}
                 </div>
                 <div className="text-xs text-gray-600">Total Reads</div>
               </div>
-              <div className="text-center bg-white bg-opacity-70 rounded-lg p-3">
-                <div className="text-xl font-bold text-green-600">
-                  {summaryData.unique_institutions || 0}
+              <div className="text-center bg-white/70 rounded-lg p-3 border border-emerald-100">
+                <div className="text-xl font-bold text-emerald-600 flex items-center justify-center gap-1">
+                  <BuildingOfficeIcon className="h-4 w-4" />
+                  {analytics.summary.totalInstitutions}
                 </div>
                 <div className="text-xs text-gray-600">Institutions</div>
               </div>
-              <div className="text-center bg-white bg-opacity-70 rounded-lg p-3">
-                <div className="text-xl font-bold text-purple-600">
-                  {summaryData.unique_countries || 0}
+              <div className="text-center bg-white/70 rounded-lg p-3 border border-purple-100">
+                <div className="text-xl font-bold text-purple-600 flex items-center justify-center gap-1">
+                  <DocumentTextIcon className="h-4 w-4" />
+                  {analytics.summary.totalReports}
                 </div>
-                <div className="text-xs text-gray-600">Countries</div>
+                <div className="text-xs text-gray-600">Reports</div>
               </div>
-              <div className="text-center bg-white bg-opacity-70 rounded-lg p-3">
-                <div className="text-xl font-bold text-orange-600">
-                  {summaryData.embargo_status?.revealed_records || 0}
+              <div className="text-center bg-white/70 rounded-lg p-3 border border-orange-100">
+                <div className={`text-xl font-bold flex items-center justify-center gap-1 ${
+                  analytics.summary.transparencyRate > 70 ? 'text-green-600' :
+                  analytics.summary.transparencyRate > 30 ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  <CubeTransparentIcon className="h-4 w-4" />
+                  {analytics.summary.transparencyRate.toFixed(1)}%
                 </div>
-                <div className="text-xs text-gray-600">Revealed</div>
+                <div className="text-xs text-gray-600">Transparency</div>
               </div>
             </div>
           )}
         </div>
 
+        {/* FRC Matching Intelligence */}
+        {analytics.frcInsights && (
+          <div className="mt-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-200">
+            <h4 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
+              <FireIcon className="h-4 w-4" />
+              FRC Research Impact Analysis
+            </h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-lg font-bold text-indigo-600">{analytics.frcInsights.matchRate.toFixed(1)}%</div>
+                <div className="text-xs text-indigo-700">Match Rate</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-600">{analytics.frcInsights.institutionalInterest}</div>
+                <div className="text-xs text-purple-700">Inst. Reads</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-pink-600">{analytics.frcInsights.reportsCovered}</div>
+                <div className="text-xs text-pink-700">Reports</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Controls */}
         <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showEmbargoed}
-                onChange={(e) => setShowEmbargoed(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <span>Show Embargoed Records</span>
-            </label>
 
-            {/* Items per page */}
             <div className="flex items-center gap-2 text-sm">
-              <span>Show:</span>
+              <FunnelIcon className="h-4 w-4 text-gray-400" />
               <select
-                value={itemsPerPage}
-                onChange={(e) => changeItemsPerPage(Number(e.target.value))}
+                value={pagination.itemsPerPage}
+                onChange={(e) => setPagination(prev => ({ ...prev, itemsPerPage: Number(e.target.value), currentPage: 1 }))}
                 className="border border-gray-300 rounded px-2 py-1 text-sm"
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
               </select>
-              <span>per page</span>
-            </div>
-
-            {/* Sorting info */}
-            <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-              <span>📊</span>
-              <span>Revealed records shown first</span>
             </div>
           </div>
 
-          {totalRecords > 0 && (
+          {filteredInstitutions.length > 0 && (
             <div className="mt-2 sm:mt-0 flex items-center gap-4">
               <span className="text-sm text-gray-600">
-                Showing {startRecord}-{endRecord} of {totalRecords} records
-              </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                Page {currentPage} of {totalPages}
+                Showing {startIndex + 1}-{Math.min(startIndex + pagination.itemsPerPage, filteredInstitutions.length)} of {filteredInstitutions.length} institutions
               </span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Table */}
-      {institutionalData.length > 0 ? (
+
+      {/* Institutions Table */}
+      {filteredInstitutions.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse border border-gray-400">
-            <thead className="bg-gradient-to-r from-slate-800 to-slate-700 sticky top-0 z-10">
-              <tr className="border-b-2 border-slate-600">
-                <th
-                  className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 cursor-pointer hover:bg-slate-600"
-                  onClick={() => sortData("customer_name")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                    <span>Institution {getSortIcon("customer_name")}</span>
+          <table className="min-w-full border-collapse">
+            <thead className="bg-gradient-to-r from-slate-800 to-slate-700 sticky top-0">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r border-slate-600">
+                  <div className="flex items-center gap-2">
+                    <TrophyIcon className="h-3 w-3" />
+                    <span>Rank</span>
                   </div>
                 </th>
-                <th
-                  className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 cursor-pointer hover:bg-slate-600"
-                  onClick={() => sortData("title")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-pink-400 rounded-full"></div>
-                    <span>Report Title {getSortIcon("title")}</span>
+                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r border-slate-600">
+                  <div className="flex items-center gap-2">
+                    <BuildingOfficeIcon className="h-3 w-3" />
+                    <span>Institution</span>
                   </div>
                 </th>
-                <th
-                  className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 cursor-pointer hover:bg-slate-600"
-                  onClick={() => sortData("customer_country")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                    <span>Country {getSortIcon("customer_country")}</span>
+                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r border-slate-600">
+                  <div className="flex items-center gap-2">
+                    <GlobeAltIcon className="h-3 w-3" />
+                    <span>Location</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
-                    <span>City</span>
+                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r border-slate-600">
+                  <div className="flex items-center gap-2">
+                    <EyeIcon className="h-3 w-3" />
+                    <span>Reads</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-indigo-400 rounded-full"></div>
-                    <span>Firm #</span>
-                  </div>
-                </th>
-                <th
-                  className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 cursor-pointer hover:bg-slate-600"
-                  onClick={() => sortData("transaction_date")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-                    <span>Access Date {getSortIcon("transaction_date")}</span>
-                  </div>
-                </th>
-                <th
-                  className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r-2 border-slate-600 cursor-pointer hover:bg-slate-600"
-                  onClick={() => sortData("post_date")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-cyan-400 rounded-full"></div>
-                    <span>
-                      Published Date {getSortIcon("post_date")}
-                    </span>
+                <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide border-r border-slate-600">
+                  <div className="flex items-center gap-2">
+                    <ChartBarIcon className="h-3 w-3" />
+                    <span>Share</span>
                   </div>
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wide">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
+                  <div className="flex items-center gap-2">
+                    <ShieldExclamationIcon className="h-3 w-3" />
                     <span>Status</span>
                   </div>
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white">
-              {currentPageData.map((record, index) => (
-                <tr
-                  key={`${record.customer_number}-${index}`}
-                  className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} ${
-                    record.is_embargoed ? "bg-yellow-50" : "bg-green-50"
-                  } hover:bg-blue-50 transition-colors duration-150 border-b-2 border-gray-400`}
-                >
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r-2 border-gray-400">
-                    <div className="max-w-xs">
-                      <div
-                        className="font-semibold truncate"
-                        title={record.customer_name}
-                      >
-                        {record.customer_name || "N/A"}
+              {currentPageData.map((institution, index) => {
+                const actualIndex = startIndex + index;
+                const readCount = institution.read_count || 0;
+                const sharePercent = analytics.summary ? (readCount / analytics.summary.totalReads * 100) : 0;
+
+                return (
+                  <tr
+                    key={`inst-${actualIndex}`}
+                    className={`${actualIndex % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 transition-colors duration-150 border-b border-gray-200`}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm border-r border-gray-200">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        actualIndex < 3 ? 'bg-yellow-500 text-white' :
+                        actualIndex < 10 ? 'bg-blue-500 text-white' :
+                        'bg-gray-400 text-white'
+                      }`}>
+                        {actualIndex === 0 ? '🏆' : actualIndex + 1}
                       </div>
-                      {record.customer_number && (
-                        <div className="text-xs text-gray-500 font-mono">
-                          #{record.customer_number}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">
+                      <div className="max-w-xs">
+                        <div className="font-semibold truncate" title={institution.institution_name}>
+                          {institution.institution_name || "N/A"}
                         </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 border-r-2 border-gray-400">
-                    <div className="max-w-xs">
-                      <div
-                        className="font-medium truncate"
-                        title={record.title}
-                      >
-                        {record.title || "N/A"}
                       </div>
-                      {record.authors && (
-                        <div className="text-xs text-gray-500">
-                          By: {record.authors}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                      <div className="flex items-center">
+                        <span className="mr-2 text-lg">🌍</span>
+                        <div>
+                          <div className="font-medium">N/A</div>
+                          <div className="text-xs text-gray-500">Location not available</div>
                         </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
-                    <div className="flex items-center">
-                      <span className="mr-2 text-lg">
-                        {getCountryFlag(record.customer_country)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm border-r border-gray-200">
+                      <div className="font-bold text-blue-600">{readCount.toLocaleString()}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm border-r border-gray-200">
+                      <div className="flex items-center">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full"
+                            style={{ width: `${Math.min(sharePercent, 100)}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs font-medium">{sharePercent.toFixed(1)}%</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        👁️ Active
                       </span>
-                      <span>{record.customer_country || "N/A"}</span>
-                    </div>
-                    {record.customer_state && (
-                      <div className="text-xs text-gray-500">
-                        {record.customer_state}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
-                    {record.customer_city || "N/A"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600 border-r-2 border-gray-400">
-                    {record.firm_number || "N/A"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
-                    {formatDate(record.transaction_date)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r-2 border-gray-400">
-                    {record.post_date
-                      ? formatDate(record.post_date)
-                      : "N/A"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        record.is_embargoed
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {record.is_embargoed ? (
-                        <>🔒 Embargoed</>
-                      ) : (
-                        <>👁️ Revealed</>
-                      )}
-                    </span>
-                    {record.embargo_lift_date && record.is_embargoed && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Lift: {formatDate(record.embargo_lift_date)}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       ) : (
         <div className="text-center py-16">
-          <div className="text-gray-400 text-5xl mb-4">📊</div>
+          <div className="text-gray-400 text-5xl mb-4">🏢</div>
           <p className="text-gray-500 text-lg font-medium">
-            No Bloomberg readership data available
+            No institutional data available
           </p>
           <p className="text-gray-400 text-sm mt-2">
-            This company may not have institutional readership data or the data
-            may be embargoed.
+            This company doesn't have institutional readership data.
           </p>
         </div>
       )}
 
-      {/* Pagination Controls */}
-      {totalRecords > itemsPerPage && (
-        <div className="px-8 py-4 bg-white border-t border-gray-200">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="px-8 py-4 bg-gray-50 border-t border-gray-200">
+          <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              Showing {startRecord}-{endRecord} of {totalRecords} records
+              Page {pagination.currentPage} of {totalPages}
             </div>
-
-            <div className="mt-4 sm:mt-0 flex items-center gap-2">
-              {/* Previous button */}
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
+                onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+                disabled={pagination.currentPage === 1}
                 className={`px-3 py-1 text-sm rounded border ${
-                  currentPage === 1
+                  pagination.currentPage === 1
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
                 }`}
               >
                 Previous
               </button>
-
-              {/* Page numbers */}
-              <div className="flex items-center gap-1">
-                {/* First page */}
-                {currentPage > 3 && (
-                  <>
-                    <button
-                      onClick={() => goToPage(1)}
-                      className="px-3 py-1 text-sm rounded border bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
-                    >
-                      1
-                    </button>
-                    {currentPage > 4 && (
-                      <span className="text-gray-400">...</span>
-                    )}
-                  </>
-                )}
-
-                {/* Current page and neighbors */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNum =
-                    Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-                  if (pageNum > totalPages) return null;
-
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => goToPage(pageNum)}
-                      className={`px-3 py-1 text-sm rounded border ${
-                        pageNum === currentPage
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-
-                {/* Last page */}
-                {currentPage < totalPages - 2 && (
-                  <>
-                    {currentPage < totalPages - 3 && (
-                      <span className="text-gray-400">...</span>
-                    )}
-                    <button
-                      onClick={() => goToPage(totalPages)}
-                      className="px-3 py-1 text-sm rounded border bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
-                    >
-                      {totalPages}
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Next button */}
               <button
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(totalPages, prev.currentPage + 1) }))}
+                disabled={pagination.currentPage === totalPages}
                 className={`px-3 py-1 text-sm rounded border ${
-                  currentPage === totalPages
+                  pagination.currentPage === totalPages
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
                 }`}
@@ -685,31 +503,17 @@ const BloombergReadershipTable = ({ ticker }) => {
         </div>
       )}
 
-      {/* Footer with additional info */}
-      {summaryData && institutionalData.length > 0 && (
-        <div className="px-8 py-4 bg-gray-50 border-t border-gray-200">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600">
-            <div className="flex items-center gap-6">
-              {summaryData.primary_country && (
-                <span>
-                  <strong>Top Country:</strong>{" "}
-                  {getCountryFlag(summaryData.primary_country)}{" "}
-                  {summaryData.primary_country}
-                </span>
-              )}
-              {summaryData.embargo_status && (
-                <span>
-                  <strong>Embargo Rate:</strong>{" "}
-                  {summaryData.embargo_status.embargo_percentage?.toFixed(1) ||
-                    0}
-                  %
-                </span>
-              )}
+      {/* Recent Activity Footer */}
+      {analytics.recentActivity.length > 0 && (
+        <div className="px-8 py-4 bg-blue-50 border-t border-gray-200">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-blue-700">
+              <CalendarIcon className="h-4 w-4" />
+              <span className="font-medium">Recent Activity:</span>
+              <span>{analytics.recentActivity.length} reports published in last 30 days</span>
             </div>
-            <div className="mt-2 sm:mt-0">
-              <span className="text-xs text-gray-500">
-                Last updated: {new Date().toLocaleDateString()}
-              </span>
+            <div className="text-xs text-gray-500">
+              Last updated: {formatDate(new Date().toISOString())}
             </div>
           </div>
         </div>

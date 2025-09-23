@@ -585,31 +585,92 @@ export async function exportProfessionalCompanyReport(
 
     // 5. ENHANCED BLOOMBERG INSTITUTIONAL READERSHIP - Matching BloombergReadershipTable component
     const addBloombergSection = () => {
-      // Extract Bloomberg data from the correct API response structure (matching BloombergReadershipTable)
+      // Extract Bloomberg data supporting both new APIs and legacy format
       let records = [];
       let summary = {};
+      let institutionsData = [];
 
       if (bloombergData) {
-        // Try to get records from revealed_records and embargoed_records (like BloombergReadershipTable)
-        if (bloombergData.revealed_records) {
-          records = [...bloombergData.revealed_records];
-        }
-        if (bloombergData.embargoed_records) {
-          records = [...records, ...bloombergData.embargoed_records];
+        // NEW FORMAT: Check for resolve-company API response format
+        if (bloombergData.readership_analytics) {
+          // This is from the new resolve-company API
+          summary = {
+            total_records: bloombergData.readership_analytics.total_reads || 0,
+            unique_institutions: bloombergData.readership_analytics.unique_institutions || 0,
+            revealed_records: bloombergData.readership_analytics.revealed_reads || 0,
+            embargoed_records: bloombergData.readership_analytics.embargoed_reads || 0,
+            transparency_rate: bloombergData.readership_analytics.transparency_rate || 0
+          };
+
+          // Convert institutions array to records format for table
+          if (bloombergData.institutions && Array.isArray(bloombergData.institutions)) {
+            institutionsData = bloombergData.institutions.map((inst, index) => ({
+              institution_name: inst,
+              read_count: Math.floor(summary.total_records / bloombergData.institutions.length),
+              rank: index + 1
+            }));
+          }
+
+          // Use recent_activity if available for detailed records
+          if (bloombergData.recent_activity && Array.isArray(bloombergData.recent_activity)) {
+            records = bloombergData.recent_activity.map(activity => ({
+              customer_name: activity.institution,
+              customer_country: activity.country,
+              customer_city: activity.city,
+              transaction_date: activity.date,
+              report_title: activity.report_title,
+              is_embargoed: false // Recent activity is typically revealed
+            }));
+          }
         }
 
-        // Fallback to institutional_records if the above don't exist
-        if (records.length === 0 && bloombergData.institutional_records) {
-          records = bloombergData.institutional_records;
+        // NEW FORMAT: Check for analytics API response format
+        else if (bloombergData.summary || bloombergData.top_institutions) {
+          // This is from the analytics API
+          summary = {
+            total_records: bloombergData.summary?.total_reads || 0,
+            unique_institutions: bloombergData.summary?.unique_institutions || 0,
+            revealed_records: bloombergData.summary?.total_reads || 0,
+            embargoed_records: 0,
+            transparency_rate: bloombergData.summary?.average_transparency_rate || 0
+          };
+
+          // Use top_institutions data
+          if (bloombergData.top_institutions && Array.isArray(bloombergData.top_institutions)) {
+            institutionsData = bloombergData.top_institutions.map((inst, index) => ({
+              institution_name: inst.institution_name,
+              read_count: inst.read_count || 0,
+              rank: index + 1
+            }));
+          }
+
+          // Use recent_reads if available
+          if (bloombergData.recent_reads && Array.isArray(bloombergData.recent_reads)) {
+            records = bloombergData.recent_reads;
+          }
         }
 
-        summary = bloombergData.summary || {};
+        // LEGACY FORMAT: Try to get records from revealed_records and embargoed_records
+        else {
+          if (bloombergData.revealed_records) {
+            records = [...bloombergData.revealed_records];
+          }
+          if (bloombergData.embargoed_records) {
+            records = [...records, ...bloombergData.embargoed_records];
+          }
+
+          // Fallback to institutional_records if the above don't exist
+          if (records.length === 0 && bloombergData.institutional_records) {
+            records = bloombergData.institutional_records;
+          }
+
+          summary = bloombergData.summary || {};
+        }
       }
 
-      // Show section only if we have summary data (even with empty records)
-      // This matches the log showing summary: {total_records: 147, revealed_records: 104, embargoed_records: 43, unique_institutions: 66}
-      if (!summary || !summary.total_records) {
-        return; // Skip this section entirely if no summary data
+      // Show section if we have any meaningful data
+      if (!summary || (summary.total_records === 0 && institutionsData.length === 0)) {
+        return; // Skip this section entirely if no data
       }
 
       checkPageSpace(60);
@@ -672,7 +733,7 @@ export async function exportProfessionalCompanyReport(
       pdf.setFont("helvetica", "normal");
       pdf.text("Embargoed", card3X + 4, currentY + 13);
 
-      // Card 4: Revealed Records (using summary.revealed_records from log)
+      // Card 4: Transparency Rate (more relevant than just revealed count)
       const card4X = margin + cardWidth * 3 + 15;
       setFillColor([240, 253, 244]);
       pdf.roundedRect(card4X, currentY, cardWidth, cardHeight, 2, 2, "F");
@@ -683,10 +744,12 @@ export async function exportProfessionalCompanyReport(
       setColor([34, 197, 94]);
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "bold");
-      pdf.text(String(summary.revealed_records || 0), card4X + 4, currentY + 8);
+      const transparencyDisplay = summary.transparency_rate ||
+        (summary.total_records > 0 ? ((summary.revealed_records / summary.total_records) * 100) : 0);
+      pdf.text(`${transparencyDisplay.toFixed(1)}%`, card4X + 4, currentY + 8);
       pdf.setFontSize(6);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Revealed", card4X + 4, currentY + 13);
+      pdf.text("Transparency", card4X + 4, currentY + 13);
 
       currentY += cardHeight + 12;
 
@@ -709,16 +772,80 @@ export async function exportProfessionalCompanyReport(
         pdf.setFontSize(9);
         pdf.setFont("helvetica", "normal");
 
-        // Calculate embargo rate
-        const embargoRate = summary.total_records > 0 ?
-          ((summary.embargoed_records / summary.total_records) * 100) : 0;
+        // Calculate transparency rate
+        const transparencyRate = summary.transparency_rate ||
+          (summary.total_records > 0 ? ((summary.revealed_records / summary.total_records) * 100) : 0);
 
-        pdf.text("Individual institutional readership records are currently embargoed.", margin + 6, currentY + 8);
-        pdf.text(`However, we can show aggregate statistics:`, margin + 6, currentY + 14);
-        pdf.text(`• ${summary.total_records} total institutional reads from ${summary.unique_institutions} unique institutions`, margin + 6, currentY + 18);
-        pdf.text(`• Embargo Rate: ${embargoRate.toFixed(1)}% (${summary.embargoed_records} embargoed, ${summary.revealed_records} revealed)`, margin + 6, currentY + 22);
+        // Show institutions summary if we have institutions data but no detailed records
+        if (institutionsData.length > 0) {
+          pdf.text("Top Institutional Readers (based on aggregated data)", margin + 6, currentY + 8);
+          pdf.text(`${summary.total_records} total institutional reads from ${summary.unique_institutions} unique institutions`, margin + 6, currentY + 14);
+          pdf.text(`Transparency Rate: ${transparencyRate.toFixed(1)}%`, margin + 6, currentY + 18);
 
-        currentY += 30;
+          currentY += 25;
+
+          // Show institutions table
+          const instHeaders = ["Rank", "Institution Name", "Est. Reads"];
+          const instColWidths = [15, 120, 40];
+
+          // Table Header
+          setFillColor([51, 65, 85]);
+          pdf.rect(margin, currentY, contentWidth, 8, "F");
+          setColor([255, 255, 255]);
+          pdf.setFontSize(7);
+          pdf.setFont("helvetica", "bold");
+
+          let startX = margin;
+          instHeaders.forEach((header, index) => {
+            pdf.text(header, startX + 2, currentY + 5);
+            startX += instColWidths[index];
+          });
+          currentY += 8;
+
+          // Institution rows (top 10)
+          institutionsData.slice(0, 10).forEach((inst, index) => {
+            checkPageSpace(8);
+
+            setFillColor(index % 2 === 0 ? [248, 250, 252] : [255, 255, 255]);
+            pdf.rect(margin, currentY, contentWidth, 8, "F");
+
+            setDrawColor([229, 231, 235]);
+            pdf.setLineWidth(0.2);
+            pdf.rect(margin, currentY, contentWidth, 8, "S");
+
+            startX = margin;
+
+            // Rank
+            setColor([31, 41, 55]);
+            pdf.setFontSize(7);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(String(inst.rank), startX + 2, currentY + 5);
+            startX += instColWidths[0];
+
+            // Institution Name
+            pdf.setFont("helvetica", "normal");
+            const instName = String(inst.institution_name).substring(0, 50);
+            pdf.text(instName, startX + 2, currentY + 5);
+            startX += instColWidths[1];
+
+            // Read Count
+            setColor([59, 130, 246]);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(String(inst.read_count), startX + 2, currentY + 5);
+
+            currentY += 8;
+          });
+
+          currentY += 5;
+        } else {
+          // No detailed data available
+          pdf.text("Individual institutional readership records are currently embargoed.", margin + 6, currentY + 8);
+          pdf.text(`However, we can show aggregate statistics:`, margin + 6, currentY + 14);
+          pdf.text(`• ${summary.total_records} total institutional reads from ${summary.unique_institutions} unique institutions`, margin + 6, currentY + 18);
+          pdf.text(`• Transparency Rate: ${transparencyRate.toFixed(1)}%`, margin + 6, currentY + 22);
+
+          currentY += 30;
+        }
       } else {
         // Group records by institution to find top readers
         const institutionGroups = {};

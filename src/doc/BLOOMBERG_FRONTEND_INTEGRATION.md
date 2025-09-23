@@ -1,10 +1,10 @@
-# BLOOMBERG AI ANALYSIS - FRONTEND INTEGRATION GUIDE
-**Updated: September 9, 2025**
+# BLOOMBERG INSTITUTIONAL READERSHIP - FRONTEND INTEGRATION GUIDE
+**Updated: September 23, 2025**
 
-## 🚀 NEW FEATURE: Bloomberg AI Analysis System
+## 🚀 NEW FEATURE: Enhanced Bloomberg Readership System
 
 ### 📊 **What's New**
-We've successfully implemented a comprehensive Bloomberg Terminal institutional readership analysis system with AI-powered insights. This system is now **fully operational** with analysis completed for **20 companies** and all data saved to the database.
+We've successfully implemented a comprehensive Bloomberg Terminal institutional readership system with smart API fallback and PDF export integration. This system now supports **company name resolution** for ticker mismatches and includes **enhanced PDF export** capabilities.
 
 ---
 
@@ -32,101 +32,152 @@ MAI.CN (5 records), MOON.CN (5 records)
 
 ---
 
-## 🌐 **API Endpoints for Frontend Integration**
+## 🌐 **Enhanced API Endpoints for Frontend Integration**
 
-### **Base URL:** `http://localhost:8000/api/bloomberg`
+### **Base URL:** `http://localhost:8000/api`
 
-### 1. **Get Full Analysis**
+### 1. **Bloomberg v3 Analytics (Primary)**
 ```javascript
-GET /api/bloomberg/analysis/{ticker}
+GET /api/v3/bloomberg/analytics/ticker/{ticker}
 
 // Example Response:
 {
+  "summary": {
+    "total_reads": 138,
+    "unique_institutions": 45,
+    "total_reports": 3,
+    "average_transparency_rate": 26.8
+  },
+  "top_institutions": [
+    {
+      "institution_name": "BASTION ASSET MANAGEMENT INC",
+      "read_count": 15
+    }
+  ],
+  "recent_reads": [...] // Recent activity data
+}
+```
+
+### 2. **Bloomberg Company Name Resolution (Fallback)**
+```javascript
+GET /api/bloomberg/resolve-company/{company_name}
+
+// Example Response for "HydroGraph Clean Power":
+{
   "success": true,
-  "data": {
-    "ticker": "ZEPP",
-    "company_name": "ZEPP",
-    "analysis_date": "2025-09-09",
-    "last_updated": "2025-09-09T14:17:08.148626",
-    "stats": {
-      "total_records": 63,
-      "embargoed_count": 36,
-      "embargoed_percentage": 57.1,
-      "revealed_count": 27,
-      "revealed_percentage": 42.9,
-      "unique_institutions": 15,
-      "unique_countries": 9
-    },
-    "top_countries": [
-      {"country": "CN", "count": 7, "percentage": 11.1},
-      {"country": "HK", "count": 6, "percentage": 9.5}
-    ],
-    "top_institutions": [
-      {"institution": "BILIBILI INC", "count": 3, "percentage": 4.8}
-    ],
-    "ai_analysis": "Full AI analysis text...",
-    "key_insights": [
-      "Primary market: Embargoed (57.1% of reads)",
-      "International interest: 20.6% from other major markets"
-    ]
+  "company_match": {
+    "bloomberg_company_name": "HydroGraph Clean Power Inc.",
+    "bloomberg_ticker": "HG.CN, ^HG.NULL",
+    "match_confidence": 0.815
+  },
+  "readership_analytics": {
+    "total_reads": 138,
+    "revealed_reads": 37,
+    "embargoed_reads": 7,
+    "transparency_rate": 26.8,
+    "unique_institutions": 45,
+    "unique_countries": 12,
+    "reports_analyzed": 3
+  },
+  "institutions": [
+    "BASTION ASSET MANAGEMENT INC",
+    "SANOVEST HOLDINGS LTD",
+    // ... more institutions
+  ],
+  "countries": ["ENG", "US", "CND", "CH", ...],
+  "recent_activity": [...], // Recent reads with details
+  "frontend_ready": {
+    "display_name": "HydroGraph Clean Power Inc.",
+    "primary_ticker": "HG.CN, ^HG.NULL",
+    "total_institutional_reads": 138,
+    "transparency_percentage": 26.8,
+    "institution_count": 45,
+    "country_count": 12
   }
 }
 ```
 
-### 2. **Get Quick Summary**
+### 3. **Company Name Search**
 ```javascript
-GET /api/bloomberg/analysis/{ticker}/summary
+GET /api/bloomberg/company-name-search/{company_name}
 
-// Lighter version without full AI text
+// Returns company matches with confidence scores
 ```
 
-### 3. **Generate New Analysis**
+### 4. **Bloomberg v3 Reports**
 ```javascript
-POST /api/bloomberg/analysis/{ticker}/generate
+GET /api/v3/bloomberg/reports?ticker={ticker}&limit=50
 
-// Forces fresh analysis generation
+// Returns array of reports with readership data
 ```
 
-### 4. **List All Analyses**
+### 5. **Bloomberg v3 Institutions**
 ```javascript
-GET /api/bloomberg/analyses
+GET /api/v3/bloomberg/institutions?limit=10&min_reads=5
 
-// Returns list of all available analyses
+// Returns top institutions across all companies
 ```
 
 ---
 
 ## 🎨 **Frontend Component Suggestions**
 
-### **1. Bloomberg Analysis Dashboard Component**
+### **1. Enhanced Bloomberg Readership Component (Current Implementation)**
 
 ```jsx
-// BloombergAnalysis.jsx
+// BloombergReadershipTable.jsx - Already Implemented
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { BarChart, Globe, Building, Clock } from 'lucide-react';
+import {
+  getBloombergV3Analytics,
+  getBloombergResolveCompany
+} from '@/lib/api';
 
-const BloombergAnalysis = ({ ticker }) => {
-  const [analysis, setAnalysis] = useState(null);
-  const [loading, setLoading] = useState(true);
+const BloombergReadershipTable = ({ ticker, companyName }) => {
+  const [dashboardData, setDashboardData] = useState({
+    analytics: null,
+    loading: true,
+    error: null
+  });
 
-  useEffect(() => {
-    fetchAnalysis();
-  }, [ticker]);
-
-  const fetchAnalysis = async () => {
+  const fetchCompanyReadership = async () => {
     try {
-      setLoading(true);
-      const response = await fetch(`/api/bloomberg/analysis/${ticker}`);
-      const data = await response.json();
-      if (data.success) {
-        setAnalysis(data.data);
+      // First, try to get analytics for the specific ticker
+      let analytics = await getBloombergV3Analytics(ticker).catch(() => null);
+
+      // If no data found with ticker and we have a company name, try resolve-company API
+      if ((!analytics || !analytics.top_institutions || analytics.top_institutions.length === 0) && companyName) {
+        console.log(`No data found for ticker ${ticker}, trying company name: ${companyName}`);
+
+        const resolvedData = await getBloombergResolveCompany(companyName).catch(() => null);
+
+        if (resolvedData && resolvedData.success) {
+          // Transform the resolved data to match analytics structure
+          analytics = {
+            summary: {
+              total_reads: resolvedData.readership_analytics?.total_reads || 0,
+              unique_institutions: resolvedData.readership_analytics?.unique_institutions || 0,
+              total_reports: resolvedData.readership_analytics?.reports_analyzed || 0,
+              average_transparency_rate: resolvedData.readership_analytics?.transparency_rate || 0
+            },
+            top_institutions: (resolvedData.institutions || []).map((inst, index) => ({
+              institution_name: inst,
+              read_count: Math.floor((resolvedData.readership_analytics?.total_reads || 0) / (resolvedData.institutions?.length || 1))
+            }))
+          };
+        }
       }
+
+      setDashboardData({
+        analytics: analytics || null,
+        loading: false,
+        error: null
+      });
     } catch (error) {
-      console.error('Failed to fetch Bloomberg analysis:', error);
-    } finally {
-      setLoading(false);
+      setDashboardData(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message
+      }));
     }
   };
 
@@ -336,22 +387,41 @@ import BloombergSummaryCard from './components/BloombergSummaryCard';
 ))}
 ```
 
-### **3. Add Navigation Tab**
+### **3. Enhanced PDF Export Integration**
 ```jsx
-// Add Bloomberg tab to company navigation
-<Tabs>
-  <TabsList>
-    <TabsTrigger value="overview">Overview</TabsTrigger>
-    <TabsTrigger value="reports">Reports</TabsTrigger>
-    <TabsTrigger value="metrics">Metrics</TabsTrigger>
-    <TabsTrigger value="bloomberg">Bloomberg Analysis</TabsTrigger> {/* NEW */}
-  </TabsList>
-  
-  <TabsContent value="bloomberg">
-    <BloombergAnalysis ticker={ticker} />
-  </TabsContent>
-</Tabs>
+// PDFExportButton.jsx - Already Implemented with Bloomberg Support
+import {
+  getBloombergV3Analytics,
+  getBloombergResolveCompany
+} from '@/lib/api';
+
+const PDFExportButton = ({ ticker, companyName }) => {
+  const handleExport = async () => {
+    // Same smart fallback logic as component
+    let analytics = await getBloombergV3Analytics(ticker).catch(() => null);
+
+    if (!analytics && companyName) {
+      const resolvedData = await getBloombergResolveCompany(companyName).catch(() => null);
+      if (resolvedData?.success) {
+        analytics = resolvedData; // Use resolve-company data
+      }
+    }
+
+    // Generate PDF with Bloomberg section
+    await exportProfessionalCompanyReport({
+      bloombergData: analytics,
+      // ... other data
+    });
+  };
+};
 ```
+
+### **4. Bloomberg PDF Export Features**
+- **Automatic Data Detection**: Supports resolve-company, analytics, and legacy formats
+- **Institutional Rankings**: Top 10 institutions with read counts
+- **Summary Cards**: Total reads, institutions, embargoed count, transparency rate
+- **Recent Activity**: Timeline of institutional access when available
+- **Professional Layout**: Matches component design with proper spacing
 
 ---
 

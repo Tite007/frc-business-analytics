@@ -177,6 +177,47 @@ The system expects this data format (automatically converted from your blocks):
 - ⚡ **Time savings** - automated layout and formatting
 - 🔄 **Reusable templates** - consistent report structure
 
+## 📊 **Enhanced Bloomberg Institutional Readership Section**
+
+### **Smart API Integration**
+- **Primary**: Bloomberg v3 Analytics API for ticker-based data
+- **Fallback**: Company name resolution for ticker mismatches
+- **Legacy Support**: Backward compatibility with existing data formats
+
+### **Bloomberg PDF Features**
+- **Summary Cards**: Total reads, institutions, embargoed count, transparency rate
+- **Institutional Rankings**: Top 10 institutions with read counts and market share
+- **Recent Activity Timeline**: When available, shows institutional access patterns
+- **Professional Layout**: Matches dashboard component design with proper spacing
+- **Multi-Format Support**: Handles resolve-company, analytics, and legacy data
+
+### **Example Bloomberg Section Output**
+```
+BLOOMBERG INSTITUTIONAL READERSHIP
+
+[138 Total Reads] [45 Institutions] [7 Embargoed] [26.8% Transparency]
+
+Top Institutional Readers (based on aggregated data)
+138 total institutional reads from 45 unique institutions
+Transparency Rate: 26.8%
+
+Rank | Institution Name                     | Est. Reads
+-----|-------------------------------------|----------
+1    | BASTION ASSET MANAGEMENT INC        | 3
+2    | SANOVEST HOLDINGS LTD               | 3
+3    | EVERSOURCE ENERGY SERVICE COMPANY   | 3
+...
+```
+
+### **Bloomberg Integration Benefits**
+- ✅ **Ticker Mismatch Resolution**: Automatically handles company name → Bloomberg ticker conversion
+- ✅ **Rich Institutional Data**: Shows actual institutional engagement
+- ✅ **Professional Presentation**: Clean, branded layout matching web component
+- ✅ **Smart Data Detection**: Supports multiple API response formats
+- ✅ **Transparency Metrics**: Clear display of embargo vs. revealed data
+
+---
+
 ## 🎯 **Result**
 
 You now have a **professional research report system** that:
@@ -189,5 +230,7 @@ You now have a **professional research report system** that:
 - ✅ **Extracts highlights** from rich text content
 - ✅ **Formats financial data** professionally
 - ✅ **Includes proper disclaimers** and branding
+- ✅ **Bloomberg Integration**: Smart API fallback with institutional readership data
+- ✅ **Enhanced PDF Export**: Company name resolution for complete data coverage
 
-The system matches exactly what you showed in the screenshot - a **one-page professional research report** with all elements properly sized and positioned! 🎉📈
+The system matches exactly what you showed in the screenshot - a **one-page professional research report** with all elements properly sized and positioned, now including comprehensive Bloomberg institutional readership analytics! 🎉📈

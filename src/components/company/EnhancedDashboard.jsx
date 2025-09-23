@@ -22,6 +22,7 @@ import TableComponent from "@/components/TableComponent";
 import AnalysisComponent from "@/components/AnalysisComponent";
 import BloombergReadershipTable from "@/components/BloombergReadershipTable";
 import BloombergAnalysis from "@/components/BloombergAnalysis";
+// Removed duplicate Bloomberg components - using existing ones below
 import EnhancedMetricsTable from "./EnhancedMetricsTable";
 import DataSummaryDashboard from "./DataSummaryDashboard";
 import MobileDataControls from "./MobileDataControls";
@@ -567,7 +568,18 @@ export default function EnhancedDashboard({
 
           {activeTab === "bloomberg" && (
             <div className="space-y-6">
-              <BloombergReadershipTable ticker={ticker} />
+              {/* Bloomberg Analysis - Simplified */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">🔗 Bloomberg Integration</h3>
+                <p className="text-gray-600 mb-4">
+                  Bloomberg institutional readership data for {getCompanyName()} ({ticker})
+                </p>
+              </div>
+
+              {/* Bloomberg Readership Table */}
+              <BloombergReadershipTable ticker={ticker} companyName={getCompanyName()} />
+
+              
             </div>
           )}
         </div>

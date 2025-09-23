@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DocumentTextIcon, CalendarIcon, EyeIcon } from "@heroicons/react/24/outline";
-import { getBloombergReadership } from "@/lib/api";
+import { DocumentTextIcon, CalendarIcon, EyeIcon, ShieldExclamationIcon } from "@heroicons/react/24/outline";
+import { getBloombergV3Reports, getBloombergV3MostReadReports } from "@/lib/api";
 
 export default function ReportsOverview({ ticker = null }) {
   const [reports, setReports] = useState([]);
@@ -14,34 +14,16 @@ export default function ReportsOverview({ ticker = null }) {
         setLoading(true);
 
         if (ticker) {
-          const data = await getBloombergReadership(ticker);
-
-          if (data.success && data.data.readership_data) {
-            // Group by report and count reads
-            const reportMap = {};
-            data.data.readership_data.forEach(record => {
-              const reportKey = record.report_title || `Report ${record.report_id}`;
-              if (!reportMap[reportKey]) {
-                reportMap[reportKey] = {
-                  title: reportKey,
-                  date: record.publication_date,
-                  reads: 0,
-                  institutions: new Set()
-                };
-              }
-              reportMap[reportKey].reads++;
-              if (record.institution_name) {
-                reportMap[reportKey].institutions.add(record.institution_name);
-              }
-            });
-
-            // Convert to array and add institution count
-            const reportsArray = Object.values(reportMap).map(report => ({
-              ...report,
-              institutionCount: report.institutions.size
-            }));
-
-            setReports(reportsArray.sort((a, b) => b.reads - a.reads));
+          // Get reports for specific ticker
+          const response = await getBloombergV3Reports({ ticker, limit: 10, sort_by: "post_date", sort_order: -1 });
+          if (response && Array.isArray(response)) {
+            setReports(response);
+          }
+        } else {
+          // Get most read reports for overview
+          const response = await getBloombergV3MostReadReports({ days: 30, limit: 10 });
+          if (response && response.most_read_reports) {
+            setReports(response.most_read_reports);
           }
         }
       } catch (error) {
@@ -102,19 +84,37 @@ export default function ReportsOverview({ ticker = null }) {
                     <h4 className="font-medium text-gray-900 mb-2">
                       {report.title}
                     </h4>
+                    <div className="text-xs text-gray-600 mb-2">
+                      {report.company_name} ({report.primary_ticker})
+                    </div>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
-                      {report.date && (
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="h-4 w-4" />
-                          {new Date(report.date).toLocaleDateString()}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon className="h-4 w-4" />
+                        {new Date(report.post_date).toLocaleDateString()}
+                      </div>
                       <div className="flex items-center gap-1">
                         <EyeIcon className="h-4 w-4" />
-                        {report.reads} reads
+                        {report.total_reads} reads
                       </div>
-                      <div>
-                        {report.institutionCount} institutions
+                      {report.unique_institutions && (
+                        <div>
+                          {report.unique_institutions} institutions
+                        </div>
+                      )}
+                      {report.embargoed_reads > 0 && (
+                        <div className="flex items-center gap-1 text-orange-600">
+                          <ShieldExclamationIcon className="h-4 w-4" />
+                          {report.embargoed_reads} embargoed
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-2">
+                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        report.transparency_rate > 70 ? 'bg-green-100 text-green-800' :
+                        report.transparency_rate > 30 ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {report.transparency_rate?.toFixed(1)}% transparency
                       </div>
                     </div>
                   </div>

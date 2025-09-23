@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BuildingOfficeIcon, GlobeAltIcon } from "@heroicons/react/24/outline";
-import { getBloombergStats, getBloombergReadership } from "@/lib/api";
+import { getBloombergV3Institutions, getBloombergV3Analytics } from "@/lib/api";
 
 export default function InstitutionsOverview({ ticker = null }) {
   const [institutions, setInstitutions] = useState([]);
@@ -14,27 +14,23 @@ export default function InstitutionsOverview({ ticker = null }) {
         setLoading(true);
 
         if (ticker) {
-          const data = await getBloombergReadership(ticker);
-          if (data.success && data.data.readership_data) {
-            // For specific ticker, get unique institutions
-            const uniqueInstitutions = {};
-            data.data.readership_data.forEach(record => {
-              if (!uniqueInstitutions[record.institution_name]) {
-                uniqueInstitutions[record.institution_name] = {
-                  name: record.institution_name,
-                  country: record.country,
-                  reads: 0
-                };
-              }
-              uniqueInstitutions[record.institution_name].reads++;
-            });
-            setInstitutions(Object.values(uniqueInstitutions));
+          // For specific ticker, get analytics with top institutions
+          const data = await getBloombergV3Analytics(ticker);
+          if (data && data.top_institutions) {
+            setInstitutions(data.top_institutions);
           }
         } else {
-          const data = await getBloombergStats();
-          if (data.success) {
-            // For overview, show top institutions from stats
-            setInstitutions(data.top_institutions || []);
+          // For overview, get top institutions from v3 API
+          const response = await getBloombergV3Institutions({ limit: 10, min_reads: 5 });
+          if (response && Array.isArray(response)) {
+            const formattedInstitutions = response.map(inst => ({
+              name: inst.customer_name,
+              country: inst.customer_country,
+              city: inst.customer_city,
+              reads: inst.total_reads,
+              is_embargoed: inst.is_embargoed_entity
+            }));
+            setInstitutions(formattedInstitutions);
           }
         }
       } catch (error) {
@@ -79,27 +75,38 @@ export default function InstitutionsOverview({ ticker = null }) {
         ) : (
           <div className="space-y-4">
             {institutions.slice(0, 10).map((institution, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${
+                institution.is_embargoed ? 'bg-orange-50 border border-orange-200' : 'bg-gray-50'
+              }`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-semibold text-blue-600">
-                      {index + 1}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    institution.is_embargoed ? 'bg-orange-100' : 'bg-blue-100'
+                  }`}>
+                    <span className={`text-sm font-semibold ${
+                      institution.is_embargoed ? 'text-orange-600' : 'text-blue-600'
+                    }`}>
+                      {institution.is_embargoed ? '🛡️' : index + 1}
                     </span>
                   </div>
                   <div>
                     <div className="font-medium text-gray-900">
-                      {institution.name || institution.institution_name}
+                      {institution.name || institution.customer_name}
                     </div>
-                    {institution.country && (
-                      <div className="text-sm text-gray-500 flex items-center gap-1">
-                        <GlobeAltIcon className="h-4 w-4" />
-                        {institution.country}
-                      </div>
-                    )}
+                    <div className="text-sm text-gray-500 flex items-center gap-2">
+                      {institution.country && (
+                        <div className="flex items-center gap-1">
+                          <GlobeAltIcon className="h-4 w-4" />
+                          {institution.country} {institution.city && `• ${institution.city}`}
+                        </div>
+                      )}
+                      {institution.is_embargoed && (
+                        <span className="text-orange-600 text-xs">Embargoed</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="text-sm font-medium text-gray-700">
-                  {institution.reads ? `${institution.reads} reads` : institution.count || 0}
+                  {institution.reads || institution.read_count || institution.total_reads || 0} reads
                 </div>
               </div>
             ))}

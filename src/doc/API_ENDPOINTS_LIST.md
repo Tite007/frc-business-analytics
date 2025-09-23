@@ -440,6 +440,95 @@ curl "http://127.0.0.1:8000/api/frc/search?q=AAPL"
 - Apple (AAPL), Microsoft (MSFT), Shopify (SHOP.TO)
 - Royal Bank of Canada (RY.TO), Canadian National Railway (CNR.TO)
 
+## Bloomberg Terminal Readership API
+
+### 1. Bloomberg v3 Analytics (Primary)
+
+**GET** `/api/v3/bloomberg/analytics/ticker/{ticker}`
+
+Get institutional readership data for a specific ticker.
+
+**Example Response:**
+```json
+{
+  "summary": {
+    "total_reads": 138,
+    "unique_institutions": 45,
+    "total_reports": 3,
+    "average_transparency_rate": 26.8
+  },
+  "top_institutions": [
+    {
+      "institution_name": "BASTION ASSET MANAGEMENT INC",
+      "read_count": 15
+    }
+  ],
+  "recent_reads": []
+}
+```
+
+### 2. Bloomberg Company Resolution (Fallback)
+
+**GET** `/api/bloomberg/resolve-company/{company_name}`
+
+Resolve company name to Bloomberg ticker and get readership data.
+
+**Example Request:**
+```bash
+curl "http://127.0.0.1:8000/api/bloomberg/resolve-company/HydroGraph%20Clean%20Power"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "company_match": {
+    "bloomberg_company_name": "HydroGraph Clean Power Inc.",
+    "bloomberg_ticker": "HG.CN, ^HG.NULL",
+    "match_confidence": 0.815
+  },
+  "readership_analytics": {
+    "total_reads": 138,
+    "transparency_rate": 26.8,
+    "unique_institutions": 45,
+    "unique_countries": 12
+  },
+  "institutions": ["BASTION ASSET MANAGEMENT INC", "..."],
+  "frontend_ready": {
+    "display_name": "HydroGraph Clean Power Inc.",
+    "total_institutional_reads": 138,
+    "transparency_percentage": 26.8,
+    "institution_count": 45
+  }
+}
+```
+
+### 3. Bloomberg Company Name Search
+
+**GET** `/api/bloomberg/company-name-search/{company_name}`
+
+Search for companies by name with confidence scoring.
+
+### 4. Bloomberg v3 Reports
+
+**GET** `/api/v3/bloomberg/reports`
+
+**Parameters:**
+- `ticker` (optional): Filter by ticker
+- `limit` (optional): Limit results (default: 50)
+- `sort_by` (optional): Sort field (default: "post_date")
+- `sort_order` (optional): Sort order (1 or -1)
+
+### 5. Bloomberg v3 Institutions
+
+**GET** `/api/v3/bloomberg/institutions`
+
+**Parameters:**
+- `limit` (optional): Limit results
+- `min_reads` (optional): Minimum read count filter
+
+---
+
 ## Error Handling
 
 ### Common HTTP Status Codes
