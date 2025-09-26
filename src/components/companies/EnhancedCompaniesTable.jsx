@@ -80,6 +80,18 @@ export default function EnhancedCompaniesTable({
           aVal = a.reports_count || 0;
           bVal = b.reports_count || 0;
           break;
+        case "price_impact_30d":
+          aVal = a.price_impact_30d || 0;
+          bVal = b.price_impact_30d || 0;
+          break;
+        case "volume_impact_30d":
+          aVal = a.volume_impact_30d || 0;
+          bVal = b.volume_impact_30d || 0;
+          break;
+        case "hit_rate":
+          aVal = a.hit_rate || 0;
+          bVal = b.hit_rate || 0;
+          break;
         case "analysis_date":
           aVal = new Date(a.analysis_date || 0);
           bVal = new Date(b.analysis_date || 0);
@@ -497,7 +509,7 @@ export default function EnhancedCompaniesTable({
               >
                 <div className="flex items-center gap-1">
                   <BuildingOfficeIcon className="h-3 w-3" />
-                  Company
+                  Company / Country
                   {sortBy === "company_name" &&
                     (sortOrder === "asc" ? (
                       <ChevronUpIcon className="h-3 w-3" />
@@ -527,21 +539,101 @@ export default function EnhancedCompaniesTable({
                     ))}
                 </div>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
-                <div className="flex items-center gap-1">
+              <th className="px-4 py-3 text-center text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
+                onClick={() => {
+                  if (sortBy === "reports_count") {
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                  } else {
+                    setSortBy("reports_count");
+                    setSortOrder("desc");
+                  }
+                }}
+              >
+                <div className="flex items-center justify-center gap-1">
                   <DocumentTextIcon className="h-3 w-3" />
-                  FRC Reports
+                  Reports
+                  {sortBy === "reports_count" &&
+                    (sortOrder === "asc" ? (
+                      <ChevronUpIcon className="h-3 w-3" />
+                    ) : (
+                      <ChevronDownIcon className="h-3 w-3" />
+                    ))}
                 </div>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
-                <div className="flex items-center gap-1">
+              <th className="px-4 py-3 text-center text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
+                onClick={() => {
+                  if (sortBy === "price_impact_30d") {
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                  } else {
+                    setSortBy("price_impact_30d");
+                    setSortOrder("desc");
+                  }
+                }}
+                title="30-Day Price Impact"
+              >
+                <div className="flex items-center justify-center gap-1">
                   <CurrencyDollarIcon className="h-3 w-3" />
-                  Impact Metrics
-                  <span className="text-green-300 text-xs">30d</span>
+                  <span>Price Impact</span>
+                  {sortBy === "price_impact_30d" &&
+                    (sortOrder === "asc" ? (
+                      <ChevronUpIcon className="h-3 w-3" />
+                    ) : (
+                      <ChevronDownIcon className="h-3 w-3" />
+                    ))}
                 </div>
+                <div className="text-green-300 text-xs">30d</div>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
-                Stock Data
+              <th className="px-4 py-3 text-center text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
+                onClick={() => {
+                  if (sortBy === "volume_impact_30d") {
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                  } else {
+                    setSortBy("volume_impact_30d");
+                    setSortOrder("desc");
+                  }
+                }}
+                title="Volume Enhancement"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <ChartBarIcon className="h-3 w-3" />
+                  <span>Volume Impact</span>
+                  {sortBy === "volume_impact_30d" &&
+                    (sortOrder === "asc" ? (
+                      <ChevronUpIcon className="h-3 w-3" />
+                    ) : (
+                      <ChevronDownIcon className="h-3 w-3" />
+                    ))}
+                </div>
+                <div className="text-blue-300 text-xs">30d</div>
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-bold text-white uppercase tracking-wide cursor-pointer hover:bg-slate-600"
+                onClick={() => {
+                  if (sortBy === "hit_rate") {
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                  } else {
+                    setSortBy("hit_rate");
+                    setSortOrder("desc");
+                  }
+                }}
+                title="Research Hit Rate"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>🎯</span>
+                  <span>Hit Rate</span>
+                  {sortBy === "hit_rate" &&
+                    (sortOrder === "asc" ? (
+                      <ChevronUpIcon className="h-3 w-3" />
+                    ) : (
+                      <ChevronDownIcon className="h-3 w-3" />
+                    ))}
+                </div>
+                <div className="text-purple-300 text-xs">Success %</div>
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-bold text-white uppercase tracking-wide">
+                <div className="flex items-center justify-center gap-1">
+                  <GlobeAmericasIcon className="h-3 w-3" />
+                  Stock Data
+                </div>
               </th>
               <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wide">
                 <div className="flex items-center gap-1">
@@ -567,34 +659,116 @@ export default function EnhancedCompaniesTable({
                   >
                     <td className="px-4 py-3 text-sm text-gray-900">
                       <div>
-                        <div className="font-medium text-sm leading-tight">
-                          {company.company_name}
-                        </div>
-                        <div className="text-gray-500 text-xs mt-0.5">
-                          {company.currency} • ID: {company._id}
+                        <div className="flex items-start gap-2">
+                          {/* Country Flag for Company Name */}
+                          {(() => {
+                            const exchanges = Array.isArray(company.exchange) ? company.exchange : [company.exchange];
+                            const isUS = exchanges.some(exchange =>
+                              exchange === "NASDAQ" || exchange === "NYSE" || exchange === "NYSE Arca" ||
+                              exchange === "New York Stock Exchange" || exchange === "NASDAQ Global Market" ||
+                              exchange === "NASDAQ Capital Market" || exchange === "AMEX" || exchange === "OTC"
+                            );
+                            const isCanadian = exchanges.some(exchange =>
+                              exchange === "TSX" || exchange === "TSXV" || exchange === "Toronto Stock Exchange" ||
+                              exchange === "TSX Venture Exchange" || exchange === "CNQ" || exchange === "NEO"
+                            );
+
+                            if (isUS) {
+                              return <span className="text-lg">🇺🇸</span>;
+                            } else if (isCanadian) {
+                              return <span className="text-lg">🇨🇦</span>;
+                            }
+                            return <span className="text-lg">🌍</span>;
+                          })()}
+                          <div className="flex-1">
+                            <div className="font-medium text-sm leading-tight">
+                              {company.company_name}
+                            </div>
+                            <div className="text-gray-500 text-xs mt-0.5">
+                              {company.currency} • ID: {company._id}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div>
-                        <div className="font-mono text-blue-600 font-semibold text-sm">
-                          {company.ticker}
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-mono text-blue-600 font-semibold text-sm">
+                            {company.ticker}
+                          </div>
+                          {/* Country Flag */}
+                          {(() => {
+                            const exchanges = Array.isArray(company.exchange) ? company.exchange : [company.exchange];
+                            const isUS = exchanges.some(exchange =>
+                              exchange === "NASDAQ" || exchange === "NYSE" || exchange === "NYSE Arca" ||
+                              exchange === "New York Stock Exchange" || exchange === "NASDAQ Global Market" ||
+                              exchange === "NASDAQ Capital Market" || exchange === "AMEX" || exchange === "OTC"
+                            );
+                            const isCanadian = exchanges.some(exchange =>
+                              exchange === "TSX" || exchange === "TSXV" || exchange === "Toronto Stock Exchange" ||
+                              exchange === "TSX Venture Exchange" || exchange === "CNQ" || exchange === "NEO"
+                            );
+
+                            if (isUS) {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                  🇺🇸 US
+                                </span>
+                              );
+                            } else if (isCanadian) {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                                  🇨🇦 CA
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="flex flex-wrap gap-1">
                           {Array.isArray(company.exchange) ? (
-                            company.exchange.map((ex, i) => (
-                              <span key={i} className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                {ex}
-                              </span>
-                            ))
+                            company.exchange.map((ex, i) => {
+                              // Color code exchanges by country
+                              const isUSExchange = ["NASDAQ", "NYSE", "NYSE Arca", "New York Stock Exchange", "NASDAQ Global Market", "NASDAQ Capital Market", "AMEX", "OTC"].includes(ex);
+                              const isCanadianExchange = ["TSX", "TSXV", "Toronto Stock Exchange", "TSX Venture Exchange", "CNQ", "NEO"].includes(ex);
+
+                              return (
+                                <span
+                                  key={i}
+                                  className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                    isUSExchange ? "bg-blue-200 text-blue-900" :
+                                    isCanadianExchange ? "bg-red-200 text-red-900" :
+                                    "bg-gray-200 text-gray-800"
+                                  }`}
+                                >
+                                  {ex}
+                                </span>
+                              );
+                            })
                           ) : (
-                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                              {company.exchange}
-                            </span>
+                            (() => {
+                              const ex = company.exchange;
+                              const isUSExchange = ["NASDAQ", "NYSE", "NYSE Arca", "New York Stock Exchange", "NASDAQ Global Market", "NASDAQ Capital Market", "AMEX", "OTC"].includes(ex);
+                              const isCanadianExchange = ["TSX", "TSXV", "Toronto Stock Exchange", "TSX Venture Exchange", "CNQ", "NEO"].includes(ex);
+
+                              return (
+                                <span
+                                  className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                    isUSExchange ? "bg-blue-200 text-blue-900" :
+                                    isCanadianExchange ? "bg-red-200 text-red-900" :
+                                    "bg-gray-200 text-gray-800"
+                                  }`}
+                                >
+                                  {ex}
+                                </span>
+                              );
+                            })()
                           )}
                         </div>
                       </div>
                     </td>
+                    {/* Reports Count */}
                     <td className="px-4 py-3 text-center">
                       <div className="flex flex-col items-center">
                         <span
@@ -611,33 +785,66 @@ export default function EnhancedCompaniesTable({
                         )}
                       </div>
                     </td>
+
+                    {/* Price Impact */}
                     <td className="px-4 py-3 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        {volumeImpact !== null || priceImpact !== null ? (
-                          <div className="flex flex-col items-center">
-                            {volumeImpact !== null && (
-                              <span className={`text-xs font-medium ${
-                                volumeImpact > 0 ? "text-green-600" : volumeImpact < 0 ? "text-red-600" : "text-gray-600"
-                              }`}>
-                                📊 {volumeImpact > 0 ? "+" : ""}{volumeImpact.toFixed(1)}% Vol
-                              </span>
-                            )}
-                            {priceImpact !== null && (
-                              <span className={`text-xs font-medium ${
-                                priceImpact > 0 ? "text-green-600" : priceImpact < 0 ? "text-red-600" : "text-gray-600"
-                              }`}>
-                                💰 {priceImpact > 0 ? "+" : ""}{priceImpact.toFixed(1)}% Price
-                              </span>
-                            )}
-                          </div>
+                      <div className="flex flex-col items-center">
+                        {priceImpact !== null ? (
+                          <>
+                            <span className={`font-semibold text-base ${
+                              priceImpact > 0 ? "text-green-600" : priceImpact < 0 ? "text-red-600" : "text-gray-600"
+                            }`}>
+                              {priceImpact > 0 ? "+" : ""}{priceImpact.toFixed(2)}%
+                            </span>
+                            <span className="text-xs text-gray-500">30-day avg</span>
+                          </>
                         ) : (
-                          <button
-                            className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
-                            onClick={() => window.open(`/api/frc/company/${company.ticker}/metrics`, '_blank')}
-                            title="Fetch live impact metrics"
-                          >
-                            📈 Load Metrics
-                          </button>
+                          <div className="text-center">
+                            <span className="text-xs text-gray-400">N/A</span>
+                            <div className="text-xs text-gray-300">No data</div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Volume Impact */}
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center">
+                        {volumeImpact !== null ? (
+                          <>
+                            <span className={`font-semibold text-base ${
+                              volumeImpact > 0 ? "text-green-600" : volumeImpact < 0 ? "text-red-600" : "text-gray-600"
+                            }`}>
+                              {volumeImpact > 0 ? "+" : ""}{volumeImpact.toFixed(2)}%
+                            </span>
+                            <span className="text-xs text-gray-500">30-day avg</span>
+                          </>
+                        ) : (
+                          <div className="text-center">
+                            <span className="text-xs text-gray-400">N/A</span>
+                            <div className="text-xs text-gray-300">No data</div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Hit Rate */}
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center">
+                        {(company.hit_rate !== undefined && company.hit_rate !== null) ? (
+                          <>
+                            <span className={`font-semibold text-base ${
+                              company.hit_rate > 50 ? "text-green-600" : company.hit_rate > 25 ? "text-yellow-600" : "text-red-600"
+                            }`}>
+                              {company.hit_rate.toFixed(0)}%
+                            </span>
+                            <span className="text-xs text-gray-500">success rate</span>
+                          </>
+                        ) : (
+                          <div className="text-center">
+                            <span className="text-xs text-gray-400">N/A</span>
+                            <div className="text-xs text-gray-300">No data</div>
+                          </div>
                         )}
                       </div>
                     </td>

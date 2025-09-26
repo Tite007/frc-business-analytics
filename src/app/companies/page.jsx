@@ -40,10 +40,22 @@ export default function CompaniesPage() {
     fetchCompanies();
   }, []);
 
-  // Categorize companies by exchange for tab counts
-  const { usCompaniesCount, canadianCompaniesCount } = useMemo(() => {
+  // Filter and categorize companies
+  const { filteredCompanies, usCompanies, canadianCompanies, usCompaniesCount, canadianCompaniesCount } = useMemo(() => {
+    // Apply search filter if there's a search term
+    let filtered = companies;
+    if (searchTerm) {
+      filtered = companies.filter(
+        (company) =>
+          company.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          company.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
     let usCount = 0;
     let canadaCount = 0;
+    let usFiltered = [];
+    let canadaFiltered = [];
 
     companies.forEach((company) => {
       // Handle both array and string exchange formats
@@ -73,16 +85,31 @@ export default function CompaniesPage() {
 
       if (isUS) {
         usCount++;
+        // Check if this company matches search
+        if (!searchTerm ||
+            company.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            company.company_name?.toLowerCase().includes(searchTerm.toLowerCase())) {
+          usFiltered.push(company);
+        }
       } else if (isCanadian) {
         canadaCount++;
+        // Check if this company matches search
+        if (!searchTerm ||
+            company.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            company.company_name?.toLowerCase().includes(searchTerm.toLowerCase())) {
+          canadaFiltered.push(company);
+        }
       }
     });
 
     return {
+      filteredCompanies: filtered,
+      usCompanies: usFiltered,
+      canadianCompanies: canadaFiltered,
       usCompaniesCount: usCount,
       canadianCompaniesCount: canadaCount,
     };
-  }, [companies]);
+  }, [companies, searchTerm]);
 
   // Handle scroll to table
   const handleViewAllCompanies = () => {
@@ -386,18 +413,7 @@ export default function CompaniesPage() {
                         <span>US Companies</span>
                       </span>
                       <span className="font-medium text-blue-600">
-                        {companies.filter(c => {
-                          const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
-                          const isUS = exchanges.some(exchange =>
-                            exchange === "NASDAQ" || exchange === "NYSE" || exchange === "NYSE Arca" ||
-                            exchange === "New York Stock Exchange" || exchange === "NASDAQ Global Market" ||
-                            exchange === "NASDAQ Capital Market" || exchange === "AMEX" || exchange === "OTC"
-                          );
-                          return isUS && (
-                            c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
-                          );
-                        }).length}
+                        {usCompanies.length}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -406,27 +422,14 @@ export default function CompaniesPage() {
                         <span>Canadian Companies</span>
                       </span>
                       <span className="font-medium text-blue-600">
-                        {companies.filter(c => {
-                          const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
-                          const isCanadian = exchanges.some(exchange =>
-                            exchange === "TSX" || exchange === "TSXV" || exchange === "Toronto Stock Exchange" ||
-                            exchange === "TSX Venture Exchange" || exchange === "CNQ" || exchange === "NEO"
-                          );
-                          return isCanadian && (
-                            c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
-                          );
-                        }).length}
+                        {canadianCompanies.length}
                       </span>
                     </div>
                     <div className="pt-2 mt-2 border-t border-gray-200">
                       <div className="flex items-center justify-between font-medium">
                         <span>Total Found</span>
                         <span className="text-blue-700">
-                          {companies.filter(c =>
-                            c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
-                          ).length}
+                          {filteredCompanies.length}
                         </span>
                       </div>
                     </div>
@@ -470,8 +473,12 @@ export default function CompaniesPage() {
                   <div className="flex items-center space-x-3">
                     <span className="text-xl">🇺🇸</span>
                     <span className="font-medium">United States</span>
-                    <Chip size="sm" color="primary" variant="flat">
-                      {usCompaniesCount}
+                    <Chip
+                      size="sm"
+                      color={searchTerm && usCompanies.length > 0 ? "success" : "primary"}
+                      variant={searchTerm ? "solid" : "flat"}
+                    >
+                      {searchTerm ? `${usCompanies.length}/${usCompaniesCount}` : usCompaniesCount}
                     </Chip>
                   </div>
                 }
@@ -495,8 +502,12 @@ export default function CompaniesPage() {
                   <div className="flex items-center space-x-3">
                     <span className="text-xl">🇨🇦</span>
                     <span className="font-medium">Canada</span>
-                    <Chip size="sm" color="primary" variant="flat">
-                      {canadianCompaniesCount}
+                    <Chip
+                      size="sm"
+                      color={searchTerm && canadianCompanies.length > 0 ? "success" : "primary"}
+                      variant={searchTerm ? "solid" : "flat"}
+                    >
+                      {searchTerm ? `${canadianCompanies.length}/${canadianCompaniesCount}` : canadianCompaniesCount}
                     </Chip>
                   </div>
                 }
@@ -520,8 +531,12 @@ export default function CompaniesPage() {
                   <div className="flex items-center space-x-3">
                     <span className="text-xl">🌍</span>
                     <span className="font-medium">All Companies</span>
-                    <Chip size="sm" color="primary" variant="flat">
-                      {companies.length}
+                    <Chip
+                      size="sm"
+                      color={searchTerm && filteredCompanies.length > 0 ? "success" : "primary"}
+                      variant={searchTerm ? "solid" : "flat"}
+                    >
+                      {searchTerm ? `${filteredCompanies.length}/${companies.length}` : companies.length}
                     </Chip>
                   </div>
                 }
