@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/components/AuthContext";
 import { getCompanies } from "@/lib/api";
-import { MagnifyingGlassIcon, InformationCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { InformationCircleIcon, XMarkIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Chip } from "@heroui/chip";
 import EnhancedCompaniesTable from "@/components/companies/EnhancedCompaniesTable";
@@ -11,11 +11,12 @@ import CompaniesSummaryDashboard from "@/components/companies/CompaniesSummaryDa
 export default function CompaniesPage() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const [companies, setCompanies] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSummary, setShowSummary] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
 
   useEffect(() => {
     async function fetchCompanies() {
@@ -39,24 +40,12 @@ export default function CompaniesPage() {
     fetchCompanies();
   }, []);
 
-  // Filter and categorize companies
-  const { filteredCompanies, usCompanies, canadianCompanies } = useMemo(() => {
-    let filtered = companies;
+  // Categorize companies by exchange for tab counts
+  const { usCompaniesCount, canadianCompaniesCount } = useMemo(() => {
+    let usCount = 0;
+    let canadaCount = 0;
 
-    // Apply search filter if there's a search term
-    if (searchTerm) {
-      filtered = companies.filter(
-        (company) =>
-          company.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          company.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Categorize by exchange
-    const us = [];
-    const canada = [];
-
-    filtered.forEach((company) => {
+    companies.forEach((company) => {
       // Handle both array and string exchange formats
       const exchanges = Array.isArray(company.exchange) ? company.exchange : [company.exchange];
 
@@ -83,22 +72,17 @@ export default function CompaniesPage() {
       );
 
       if (isUS) {
-        us.push(company);
+        usCount++;
       } else if (isCanadian) {
-        canada.push(company);
+        canadaCount++;
       }
     });
 
-    // Sort alphabetically by company name
-    const sortByName = (a, b) =>
-      (a.company_name || "").localeCompare(b.company_name || "");
-
     return {
-      filteredCompanies: filtered,
-      usCompanies: us.sort(sortByName),
-      canadianCompanies: canada.sort(sortByName),
+      usCompaniesCount: usCount,
+      canadianCompaniesCount: canadaCount,
     };
-  }, [searchTerm, companies]);
+  }, [companies]);
 
   // Handle scroll to table
   const handleViewAllCompanies = () => {
@@ -339,102 +323,118 @@ export default function CompaniesPage() {
           />
         )}
 
-        {/* Enhanced Search Section */}
-        <div className="bg-gradient-to-r from-white to-blue-50 rounded-xl shadow-lg border border-blue-100 p-6 mb-8">
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <MagnifyingGlassIcon className="h-5 w-5 text-blue-600" />
-              Search Companies
-            </h2>
-            <p className="text-sm text-gray-600">
-              Search through {companies.length} FRC-covered companies by name or ticker symbol
-              {!showInfo && (
+        {/* Unified Search Section */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-100 p-6 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
+            <div className="flex-1 w-full">
+              <div className="flex items-center gap-3 mb-3">
+                <MagnifyingGlassIcon className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Search All Companies</h3>
                 <button
-                  onClick={() => setShowInfo(true)}
-                  className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                  onClick={() => setShowInfo(!showInfo)}
+                  className="p-1 text-blue-600 hover:text-blue-700 transition-colors"
+                  title="Search help"
                 >
-                  (Need help?)
+                  <InformationCircleIcon className="h-4 w-4" />
                 </button>
-              )}
-            </p>
-          </div>
+              </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="relative flex-1 w-full">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="e.g., 'HydroGraph' or 'HGC' or 'Tesla' or 'TSLA'..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all duration-300 bg-white"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white"
-                >
-                  Clear
-                </button>
-              )}
-
-              <button
-                onClick={() => setShowInfo(!showInfo)}
-                className="px-4 py-2 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors flex items-center gap-1"
-                title="Search tips and help"
-              >
-                <InformationCircleIcon className="h-4 w-4" />
-                Help
-              </button>
-            </div>
-          </div>
-
-          {/* Search Results Summary */}
-          {searchTerm && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-800 font-medium">
-                  🔍 Found {filteredCompanies.length} companies matching "{searchTerm}"
-                </span>
-                {filteredCompanies.length > 0 && (
-                  <span className="text-xs text-blue-600">
-                    ({usCompanies.filter(c =>
-                      c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
-                    ).length} US, {canadianCompanies.filter(c =>
-                      c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
-                    ).length} Canadian)
-                  </span>
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search companies by name or ticker (e.g., 'HydroGraph', 'HGC', 'Tesla', 'TSLA')..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all duration-300 bg-white"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Clear search"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
                 )}
               </div>
 
-              {filteredCompanies.length === 0 && (
-                <div className="mt-2 text-sm text-blue-700">
-                  💡 Try searching for partial names like "Hydro" or common tickers like "AAPL", "TSLA", "SHOP"
-                </div>
-              )}
+              {/* Quick Search Examples */}
+              <div className="mt-3 flex flex-wrap gap-2 items-center">
+                <span className="text-sm text-gray-500">Quick examples:</span>
+                {["HydroGraph", "Tesla", "Shopify", "Apple"].map((example) => (
+                  <button
+                    key={example}
+                    onClick={() => setSearchTerm(example)}
+                    className="px-3 py-1 text-xs bg-white hover:bg-gray-50 text-gray-700 rounded-full border transition-colors"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
 
-          {/* Quick Search Examples */}
-          {!searchTerm && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="text-sm text-gray-500">Quick examples:</span>
-              {["HydroGraph", "Tesla", "Shopify", "HGC", "TSLA", "SHOP"].map((example) => (
-                <button
-                  key={example}
-                  onClick={() => setSearchTerm(example)}
-                  className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors"
-                >
-                  {example}
-                </button>
-              ))}
-            </div>
-          )}
+            {/* Search Results Summary */}
+            {searchTerm && (
+              <div className="lg:min-w-[280px]">
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <div className="text-sm font-medium text-gray-900 mb-2">Search Results</div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg">🇺🇸</span>
+                        <span>US Companies</span>
+                      </span>
+                      <span className="font-medium text-blue-600">
+                        {companies.filter(c => {
+                          const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+                          const isUS = exchanges.some(exchange =>
+                            exchange === "NASDAQ" || exchange === "NYSE" || exchange === "NYSE Arca" ||
+                            exchange === "New York Stock Exchange" || exchange === "NASDAQ Global Market" ||
+                            exchange === "NASDAQ Capital Market" || exchange === "AMEX" || exchange === "OTC"
+                          );
+                          return isUS && (
+                            c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                          );
+                        }).length}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg">🇨🇦</span>
+                        <span>Canadian Companies</span>
+                      </span>
+                      <span className="font-medium text-blue-600">
+                        {companies.filter(c => {
+                          const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+                          const isCanadian = exchanges.some(exchange =>
+                            exchange === "TSX" || exchange === "TSXV" || exchange === "Toronto Stock Exchange" ||
+                            exchange === "TSX Venture Exchange" || exchange === "CNQ" || exchange === "NEO"
+                          );
+                          return isCanadian && (
+                            c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                          );
+                        }).length}
+                      </span>
+                    </div>
+                    <div className="pt-2 mt-2 border-t border-gray-200">
+                      <div className="flex items-center justify-between font-medium">
+                        <span>Total Found</span>
+                        <span className="text-blue-700">
+                          {companies.filter(c =>
+                            c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                          ).length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Companies Tabs */}
@@ -447,7 +447,7 @@ export default function CompaniesPage() {
               Companies by Exchange
             </h2>
             <p className="text-gray-600 mt-1">
-              Browse companies organized by their stock exchange
+              Browse companies organized by their stock exchange - each tab has its own search
             </p>
           </div>
 
@@ -471,17 +471,18 @@ export default function CompaniesPage() {
                     <span className="text-xl">🇺🇸</span>
                     <span className="font-medium">United States</span>
                     <Chip size="sm" color="primary" variant="flat">
-                      {usCompanies.length}
+                      {usCompaniesCount}
                     </Chip>
                   </div>
                 }
               >
                 <div className="mt-6">
                   <EnhancedCompaniesTable
-                    companies={usCompanies}
+                    companies={companies}
                     title="US Companies (NYSE, NASDAQ)"
+                    totalCompaniesCount={companies.length}
+                    exchangeType="us"
                     searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
                     showPagination={true}
                     itemsPerPage={10}
                   />
@@ -495,17 +496,18 @@ export default function CompaniesPage() {
                     <span className="text-xl">🇨🇦</span>
                     <span className="font-medium">Canada</span>
                     <Chip size="sm" color="primary" variant="flat">
-                      {canadianCompanies.length}
+                      {canadianCompaniesCount}
                     </Chip>
                   </div>
                 }
               >
                 <div className="mt-6">
                   <EnhancedCompaniesTable
-                    companies={canadianCompanies}
+                    companies={companies}
                     title="Canadian Companies (TSX, TSXV)"
+                    totalCompaniesCount={companies.length}
+                    exchangeType="canada"
                     searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
                     showPagination={true}
                     itemsPerPage={10}
                   />
@@ -519,17 +521,18 @@ export default function CompaniesPage() {
                     <span className="text-xl">🌍</span>
                     <span className="font-medium">All Companies</span>
                     <Chip size="sm" color="primary" variant="flat">
-                      {filteredCompanies.length}
+                      {companies.length}
                     </Chip>
                   </div>
                 }
               >
                 <div className="mt-6">
                   <EnhancedCompaniesTable
-                    companies={filteredCompanies}
+                    companies={companies}
                     title="All Companies"
+                    totalCompaniesCount={companies.length}
+                    exchangeType="all"
                     searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
                     showPagination={true}
                     itemsPerPage={10}
                   />
@@ -538,6 +541,7 @@ export default function CompaniesPage() {
             </Tabs>
           </div>
         </div>
+
       </div>
     </div>
   );

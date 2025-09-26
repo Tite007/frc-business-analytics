@@ -11,6 +11,9 @@ import {
   DocumentTextIcon,
   CurrencyDollarIcon,
   GlobeAmericasIcon,
+  MagnifyingGlassIcon,
+  InformationCircleIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import FRCCoverageTimelineCard from "./FRCCoverageTimelineCard";
@@ -18,21 +21,50 @@ import FRCCoverageTimelineCard from "./FRCCoverageTimelineCard";
 export default function EnhancedCompaniesTable({
   companies,
   title,
-  searchTerm,
+  totalCompaniesCount = 0,
+  exchangeType = "all", // "us", "canada", "all"
+  searchTerm = "", // Received from parent
   showPagination = false,
   itemsPerPage = 10,
 }) {
-  const [viewMode, setViewMode] = useState("table"); // "table" or "cards"
   const [sortBy, setSortBy] = useState("company_name");
   const [sortOrder, setSortOrder] = useState("asc");
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(itemsPerPage);
 
-  // Sort and paginate companies
-  const { sortedCompanies, paginatedCompanies, totalPages } = useMemo(() => {
+  // Filter, sort and paginate companies
+  const { filteredCompanies, sortedCompanies, paginatedCompanies, totalPages } = useMemo(() => {
+    // First filter by exchange type
+    let exchangeFiltered = companies;
+    if (exchangeType === 'us') {
+      exchangeFiltered = companies.filter(company => {
+        const exchanges = Array.isArray(company.exchange) ? company.exchange : [company.exchange];
+        return exchanges.some(exchange =>
+          exchange === "NASDAQ" || exchange === "NYSE" || exchange === "NYSE Arca" ||
+          exchange === "New York Stock Exchange" || exchange === "NASDAQ Global Market" ||
+          exchange === "NASDAQ Capital Market" || exchange === "AMEX" || exchange === "OTC"
+        );
+      });
+    } else if (exchangeType === 'canada') {
+      exchangeFiltered = companies.filter(company => {
+        const exchanges = Array.isArray(company.exchange) ? company.exchange : [company.exchange];
+        return exchanges.some(exchange =>
+          exchange === "TSX" || exchange === "TSXV" || exchange === "Toronto Stock Exchange" ||
+          exchange === "TSX Venture Exchange" || exchange === "CNQ" || exchange === "NEO"
+        );
+      });
+    }
+
+    // Then filter by search term
+    const filtered = exchangeFiltered.filter(company =>
+      !searchTerm ||
+      company.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      company.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     // Sort companies
-    const sorted = [...companies].sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       let aVal, bVal;
 
       switch (sortBy) {
@@ -78,6 +110,7 @@ export default function EnhancedCompaniesTable({
       const paginated = sorted.slice(startIndex, endIndex);
 
       return {
+        filteredCompanies: filtered,
         sortedCompanies: sorted,
         paginatedCompanies: paginated,
         totalPages: total,
@@ -85,11 +118,12 @@ export default function EnhancedCompaniesTable({
     }
 
     return {
+      filteredCompanies: filtered,
       sortedCompanies: sorted,
       paginatedCompanies: sorted,
       totalPages: 1,
     };
-  }, [companies, sortBy, sortOrder, currentPage, rowsPerPage, showPagination]);
+  }, [companies, searchTerm, sortBy, sortOrder, currentPage, rowsPerPage, showPagination]);
 
   // Reset to first page when companies change
   React.useEffect(() => {
@@ -861,8 +895,66 @@ export default function EnhancedCompaniesTable({
           <div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">{title}</h3>
             <p className="text-gray-600">
-              {companies.length} compan{companies.length !== 1 ? "ies" : "y"}{" "}
-              available
+              {searchTerm
+                ? `${filteredCompanies.length} of ${
+                    exchangeType === 'us' ?
+                      companies.filter(c => {
+                        const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+                        return exchanges.some(exchange =>
+                          exchange === "NASDAQ" || exchange === "NYSE" || exchange === "NYSE Arca" ||
+                          exchange === "New York Stock Exchange" || exchange === "NASDAQ Global Market" ||
+                          exchange === "NASDAQ Capital Market" || exchange === "AMEX" || exchange === "OTC"
+                        );
+                      }).length :
+                    exchangeType === 'canada' ?
+                      companies.filter(c => {
+                        const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+                        return exchanges.some(exchange =>
+                          exchange === "TSX" || exchange === "TSXV" || exchange === "Toronto Stock Exchange" ||
+                          exchange === "TSX Venture Exchange" || exchange === "CNQ" || exchange === "NEO"
+                        );
+                      }).length :
+                    companies.length
+                  } companies matching "${searchTerm}"`
+                : `${exchangeType === 'us' ?
+                    companies.filter(c => {
+                      const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+                      return exchanges.some(exchange =>
+                        exchange === "NASDAQ" || exchange === "NYSE" || exchange === "NYSE Arca" ||
+                        exchange === "New York Stock Exchange" || exchange === "NASDAQ Global Market" ||
+                        exchange === "NASDAQ Capital Market" || exchange === "AMEX" || exchange === "OTC"
+                      );
+                    }).length :
+                  exchangeType === 'canada' ?
+                    companies.filter(c => {
+                      const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+                      return exchanges.some(exchange =>
+                        exchange === "TSX" || exchange === "TSXV" || exchange === "Toronto Stock Exchange" ||
+                        exchange === "TSX Venture Exchange" || exchange === "CNQ" || exchange === "NEO"
+                      );
+                    }).length :
+                  companies.length
+                } compan${
+                  (exchangeType === 'us' ?
+                    companies.filter(c => {
+                      const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+                      return exchanges.some(exchange =>
+                        exchange === "NASDAQ" || exchange === "NYSE" || exchange === "NYSE Arca" ||
+                        exchange === "New York Stock Exchange" || exchange === "NASDAQ Global Market" ||
+                        exchange === "NASDAQ Capital Market" || exchange === "AMEX" || exchange === "OTC"
+                      );
+                    }).length :
+                  exchangeType === 'canada' ?
+                    companies.filter(c => {
+                      const exchanges = Array.isArray(c.exchange) ? c.exchange : [c.exchange];
+                      return exchanges.some(exchange =>
+                        exchange === "TSX" || exchange === "TSXV" || exchange === "Toronto Stock Exchange" ||
+                        exchange === "TSX Venture Exchange" || exchange === "CNQ" || exchange === "NEO"
+                      );
+                    }).length :
+                  companies.length) !== 1 ? "ies" : "y"
+                } available`
+              }
               {showPagination &&
                 totalPages > 1 &&
                 ` • Page ${currentPage} of ${totalPages}`}
@@ -870,29 +962,6 @@ export default function EnhancedCompaniesTable({
           </div>
 
           <div className="flex items-center gap-3 mt-4 sm:mt-0">
-            {/* View Mode Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode("table")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === "table"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Table
-              </button>
-              <button
-                onClick={() => setViewMode("cards")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === "cards"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Cards
-              </button>
-            </div>
 
             <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
               {companies.length} Companies
@@ -909,9 +978,10 @@ export default function EnhancedCompaniesTable({
         </div>
       </div>
 
+
       {/* Content */}
       <div className="p-6">
-        {viewMode === "table" ? <TableView /> : <CardView />}
+        <TableView />
         <PaginationControls />
 
         {/* Data Source Footer */}

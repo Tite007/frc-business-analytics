@@ -55,6 +55,13 @@ export default function BloombergAnalyticsDashboard() {
   const [searchTicker, setSearchTicker] = useState('');
   const [activeView, setActiveView] = useState('overview');
 
+  // Section-specific search states
+  const [sectionSearches, setSectionSearches] = useState({
+    institutions: '',
+    companies: '',
+    reports: ''
+  });
+
   useEffect(() => {
     fetchDashboardData();
   }, [filters.timeRange, filters.institutionLimit, filters.minReads]);
@@ -169,15 +176,29 @@ export default function BloombergAnalyticsDashboard() {
   const countries = [...new Set((dashboardData.topInstitutions || []).map(inst => inst.customer_country))].filter(Boolean);
 
   const filteredData = {
-    institutions: filters.country === 'all'
+    institutions: (filters.country === 'all'
       ? (dashboardData.topInstitutions || [])
-      : (dashboardData.topInstitutions || []).filter(inst => inst.customer_country === filters.country),
-
-    companies: (dashboardData.topCompanies || []).filter(company =>
-      company.total_records >= filters.minReads
+      : (dashboardData.topInstitutions || []).filter(inst => inst.customer_country === filters.country)
+    ).filter(inst =>
+      !sectionSearches.institutions ||
+      inst.customer_name?.toLowerCase().includes(sectionSearches.institutions.toLowerCase()) ||
+      inst.customer_country?.toLowerCase().includes(sectionSearches.institutions.toLowerCase())
     ),
 
-    reports: dashboardData.mostReadReports || []
+    companies: (dashboardData.topCompanies || [])
+      .filter(company => company.total_records >= filters.minReads)
+      .filter(company =>
+        !sectionSearches.companies ||
+        company.company_name?.toLowerCase().includes(sectionSearches.companies.toLowerCase()) ||
+        company.ticker?.toLowerCase().includes(sectionSearches.companies.toLowerCase())
+      ),
+
+    reports: (dashboardData.mostReadReports || []).filter(report =>
+      !sectionSearches.reports ||
+      report.title?.toLowerCase().includes(sectionSearches.reports.toLowerCase()) ||
+      report.company_name?.toLowerCase().includes(sectionSearches.reports.toLowerCase()) ||
+      report.primary_ticker?.toLowerCase().includes(sectionSearches.reports.toLowerCase())
+    )
   };
 
   if (authLoading) {
@@ -598,15 +619,52 @@ export default function BloombergAnalyticsDashboard() {
             {/* Similar detailed views for institutions, reports, and matching... */}
             {activeView === 'institutions' && (
               <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-white/30 shadow-lg">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
                   <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
                     <BuildingOfficeIcon className="h-6 w-6 text-emerald-600" />
-                    Elite Institutions ({filteredData.institutions.length})
+                    Elite Institutions ({filteredData.institutions.length}{sectionSearches.institutions ? ` filtered` : ` of ${dashboardData.topInstitutions?.length || filters.institutionLimit}`})
                   </h3>
-                  <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                    Showing top {filters.institutionLimit} • {analytics.platformMetrics.totalReadership.toLocaleString()} total reads
+
+                  <div className="flex items-center gap-3">
+                    {/* Contextual Search */}
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search institutions by name or country..."
+                        value={sectionSearches.institutions}
+                        onChange={(e) => setSectionSearches(prev => ({ ...prev, institutions: e.target.value }))}
+                        className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white/80 w-64"
+                      />
+                      {sectionSearches.institutions && (
+                        <button
+                          onClick={() => setSectionSearches(prev => ({ ...prev, institutions: '' }))}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap">
+                      Top {filters.institutionLimit} • {analytics.platformMetrics.totalReadership.toLocaleString()} reads
+                    </div>
                   </div>
                 </div>
+
+                {/* Search Results Indicator */}
+                {sectionSearches.institutions && (
+                  <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-emerald-800 font-medium">
+                        🔍 Found {filteredData.institutions.length} institutions matching "{sectionSearches.institutions}"
+                      </span>
+                      {filteredData.institutions.length === 0 && (
+                        <span className="text-xs text-emerald-600">Try a different search term</span>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-4">
                   {filteredData.institutions.map((institution, index) => (
                     <div key={institution.institution_id} className={`p-4 rounded-lg ${
