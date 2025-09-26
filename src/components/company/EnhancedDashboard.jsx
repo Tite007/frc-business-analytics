@@ -3,14 +3,12 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   ChartBarIcon,
-  TableCellsIcon,
   DocumentChartBarIcon,
   EyeIcon,
   AdjustmentsHorizontalIcon,
   ArrowDownTrayIcon,
   MagnifyingGlassIcon,
   CalendarIcon,
-  ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   ExclamationTriangleIcon,
   BuildingOfficeIcon,
@@ -23,14 +21,9 @@ import AnalysisComponent from "@/components/AnalysisComponent";
 import BloombergReadershipTable from "@/components/BloombergReadershipTable";
 import BloombergAnalysis from "@/components/BloombergAnalysis";
 // Removed duplicate Bloomberg components - using existing ones below
-import EnhancedMetricsTable from "./EnhancedMetricsTable";
 import DataSummaryDashboard from "./DataSummaryDashboard";
-import MobileDataControls from "./MobileDataControls";
 import QuickAccessMenu from "./QuickAccessMenu";
-import VolumeCorrelationDashboard from "./VolumeCorrelationDashboard";
 import { getBloombergReadership } from "@/lib/api";
-import VolumeTimelineChart from "./VolumeTimelineChart";
-import VolumeCorrelationHeatmap from "./VolumeCorrelationHeatmap";
 import FRCImpactDashboard from "../companies/FRCImpactDashboard";
 import PDFExportButton from "./PDFExportButton";
 
@@ -193,18 +186,6 @@ export default function EnhancedDashboard({
       name: "Overview",
       icon: ChartBarIcon,
       count: null,
-    },
-    {
-      id: "volume-correlation",
-      name: "Volume Correlation",
-      icon: ArrowTrendingUpIcon,
-      count: getTotalReports(),
-    },
-    {
-      id: "metrics",
-      name: "Performance Metrics",
-      icon: TableCellsIcon,
-      count: getTotalReports(),
     },
     {
       id: "analysis",
@@ -454,94 +435,7 @@ export default function EnhancedDashboard({
             </div>
           )}
 
-          {activeTab === "volume-correlation" && (
-            <div className="space-y-6">
-              {hasMetricsData ? (
-                <>
-                  <VolumeCorrelationDashboard
-                    metricsData={metricsData}
-                    ticker={ticker}
-                    companyData={companyData}
-                  />
-                  <VolumeTimelineChart
-                    metricsData={metricsData}
-                    chartData={chartData}
-                    ticker={ticker}
-                  />
-                  <VolumeCorrelationHeatmap
-                    metricsData={metricsData}
-                    ticker={ticker}
-                  />
-                </>
-              ) : (
-                <div className="text-center py-16">
-                  <ArrowTrendingUpIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg font-medium">
-                    No volume correlation data available for this company.
-                  </p>
-                  <p className="text-gray-400 text-sm mt-2">
-                    Volume correlation analysis requires metrics data.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
 
-          {activeTab === "metrics" && (
-            <div className="space-y-6">
-              {/* Mobile Controls */}
-              <MobileDataControls
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                sortOrder={sortOrder}
-                setSortOrder={setSortOrder}
-                onExport={exportData}
-                onPDFExport={exportPDFReport}
-                resultsCount={filteredMetricsData.length}
-                totalCount={metricsData?.length || 0}
-              />
-
-              {/* Desktop Search Bar */}
-              <SearchAndFilterBar />
-
-              {hasMetricsData ? (
-                <>
-                  <EnhancedMetricsTable
-                    metricsData={filteredMetricsData}
-                    companyData={companyData}
-                    ticker={ticker}
-                  />
-
-                  {filteredMetricsData.length === 0 && searchTerm && (
-                    <div className="text-center py-12">
-                      <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 text-lg">
-                        No reports match your search criteria.
-                      </p>
-                      <button
-                        onClick={() => setSearchTerm("")}
-                        className="mt-2 text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Clear search
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-16">
-                  <TableCellsIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg font-medium">
-                    No metrics data available for this company.
-                  </p>
-                  <p className="text-gray-400 text-sm mt-2">
-                    Check back later as we continuously update our data.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
 
           {activeTab === "analysis" && (
             <div className="space-y-6">

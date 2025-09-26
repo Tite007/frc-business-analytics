@@ -8,7 +8,32 @@ import {
   CurrencyDollarIcon,
   CalendarDaysIcon,
   EyeIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
+
+// Tooltip component for information display
+const InfoTooltip = ({ title, formula, explanation }) => {
+  return (
+    <div className="group relative inline-block">
+      <InformationCircleIcon className="h-4 w-4 text-gray-400 hover:text-blue-600 cursor-help transition-colors" />
+      <div className="invisible group-hover:visible absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg min-w-80 max-w-96">
+        <div className="font-semibold text-blue-200 mb-2">{title}</div>
+        <div className="mb-2">
+          <span className="font-medium">Formula:</span>
+          <div className="font-mono bg-gray-800 p-2 rounded mt-1 text-green-300">
+            {formula}
+          </div>
+        </div>
+        <div>
+          <span className="font-medium">Explanation:</span>
+          <div className="mt-1 text-gray-300">{explanation}</div>
+        </div>
+        {/* Tooltip arrow */}
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+      </div>
+    </div>
+  );
+};
 
 export default function DataSummaryDashboard({
   metricsData,
@@ -23,12 +48,13 @@ export default function DataSummaryDashboard({
 
   // Calculate summary statistics
   const totalReports = metricsData.length;
-  // Use Pre-Post data since that's where the real volume impact data is
-  const avgVolumeChange =
+  // Calculate average price change (30-day impact)
+  const avgPriceChange =
     metricsData.reduce(
-      (sum, report) => sum + (report["Volume Change Pre-Post 30 Days (%)"] || 0),
+      (sum, report) => sum + (report["Price Change 30 Days (%)"] || 0),
       0
     ) / totalReports;
+  // Use Pre-Post data since that's where the real volume impact data is
   const avgPrePostChange =
     metricsData.reduce(
       (sum, report) =>
@@ -93,7 +119,14 @@ export default function DataSummaryDashboard({
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Reports</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-600">Published Research</p>
+                <InfoTooltip
+                  title="Total Research Reports"
+                  formula="COUNT = Total number of reports published"
+                  explanation="We simply count how many research reports FRC has published for this company. Each report represents ongoing coverage and analysis by our research team."
+                />
+              </div>
               <p className="text-3xl font-bold text-blue-600">{totalReports}</p>
             </div>
             <div className="p-3 bg-blue-100 rounded-full">
@@ -101,53 +134,59 @@ export default function DataSummaryDashboard({
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500">
-            Published reports tracked
+            FRC institutional research reports
           </div>
         </div>
 
-        {/* Average Volume Change */}
+        {/* Average Price Change */}
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Avg Volume Change
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-600">
+                  30-Day Price Impact
+                </p>
+                <InfoTooltip
+                  title="30-Day Price Impact"
+                  formula="Average % = (Price after 30 days - Price at publication) ÷ Price at publication × 100"
+                  explanation="We calculate the percentage price change from when each report was published to 30 days later, then average all these percentages. Positive numbers show our research identifies stocks before they rise."
+                />
+              </div>
               <p
                 className={`text-3xl font-bold ${
-                  avgVolumeChange >= 0 ? "text-green-600" : "text-red-600"
+                  avgPriceChange >= 0 ? "text-green-600" : "text-red-600"
                 }`}
               >
-                {formatPercentage(avgVolumeChange)}
+                {formatPercentage(avgPriceChange)}
               </p>
             </div>
             <div
               className={`p-3 rounded-full ${
-                avgVolumeChange >= 0 ? "bg-green-100" : "bg-red-100"
+                avgPriceChange >= 0 ? "bg-green-100" : "bg-red-100"
               }`}
             >
-              {avgVolumeChange >= 0 ? (
-                <ArrowTrendingUpIcon
-                  className={`h-8 w-8 ${
-                    avgVolumeChange >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                />
-              ) : (
-                <ArrowTrendingDownIcon
-                  className={`h-8 w-8 ${
-                    avgVolumeChange >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                />
-              )}
+              <CurrencyDollarIcon
+                className={`h-8 w-8 ${
+                  avgPriceChange >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              />
             </div>
           </div>
-          <div className="mt-4 text-sm text-gray-500">30-day volume impact</div>
+          <div className="mt-4 text-sm text-gray-500">Average stock price response</div>
         </div>
 
         {/* Success Rate */}
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Success Rate</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-600">Research Hit Rate</p>
+                <InfoTooltip
+                  title="Research Success Rate"
+                  formula="Success Rate % = (Reports with positive volume impact ÷ Total reports) × 100"
+                  explanation="We count how many of our reports caused increased trading volume, then divide by total reports. Higher percentages show our research effectively captures investor attention and drives market activity."
+                />
+              </div>
               <p
                 className={`text-3xl font-bold ${
                   positiveVolumeReports / totalReports >= 0.5
@@ -175,7 +214,7 @@ export default function DataSummaryDashboard({
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500">
-            Reports with positive impact
+            Reports driving increased volume
           </div>
         </div>
 
@@ -183,7 +222,14 @@ export default function DataSummaryDashboard({
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Pre-Post Avg</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-600">Volume Enhancement</p>
+                <InfoTooltip
+                  title="Volume Enhancement Impact"
+                  formula="Volume Change % = (Avg Volume Post-30d - Avg Volume Pre-30d) ÷ Avg Volume Pre-30d × 100"
+                  explanation="For each report, we calculate the percentage change in average daily trading volume from 30 days before publication to 30 days after, then average all results. Positive values indicate our research increases market liquidity."
+                />
+              </div>
               <p
                 className={`text-3xl font-bold ${
                   avgPrePostChange >= 0 ? "text-green-600" : "text-red-600"
@@ -213,7 +259,7 @@ export default function DataSummaryDashboard({
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500">
-            Average pre-post volume change
+            Market liquidity improvement
           </div>
         </div>
       </div>
@@ -229,6 +275,11 @@ export default function DataSummaryDashboard({
             <h3 className="text-lg font-semibold text-gray-900">
               Most Recent Report
             </h3>
+            <InfoTooltip
+              title="Most Recent Report"
+              formula="Latest Report = MAX(Publication Date)"
+              explanation="We identify the report with the most recent publication date from all our research coverage. Shows current engagement and latest market impact metrics for this company."
+            />
           </div>
 
           <div className="space-y-3">
@@ -277,6 +328,11 @@ export default function DataSummaryDashboard({
             <h3 className="text-lg font-semibold text-gray-900">
               Best Performing Report
             </h3>
+            <InfoTooltip
+              title="Best Performing Report"
+              formula="Top Report = MAX(Volume Change Pre-Post 30 Days %)"
+              explanation="We identify the report that generated the highest percentage increase in trading volume. This represents our most effective research impact and demonstrates our ability to move markets and drive investor interest."
+            />
           </div>
 
           <div className="space-y-3">

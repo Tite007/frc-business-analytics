@@ -1,8 +1,59 @@
 "use client";
 
 import React from "react";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
 
-const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
+// Tooltip component for information display
+const InfoTooltip = ({ title, formula, explanation }) => {
+  return (
+    <div className="group relative inline-block">
+      <InformationCircleIcon className="h-3 w-3 text-gray-400 hover:text-blue-600 cursor-help transition-colors" />
+      <div className="invisible group-hover:visible absolute z-50 top-full left-1/2 transform -translate-x-1/2 mt-2 px-4 py-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg min-w-80 max-w-96">
+        <div className="font-semibold text-blue-200 mb-2">{title}</div>
+        <div className="mb-2">
+          <span className="font-medium">Formula:</span>
+          <div className="font-mono bg-gray-800 p-2 rounded mt-1 text-green-300">
+            {formula}
+          </div>
+        </div>
+        <div>
+          <span className="font-medium">Explanation:</span>
+          <div className="mt-1 text-gray-300">{explanation}</div>
+        </div>
+        {/* Tooltip arrow pointing up */}
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-gray-900"></div>
+      </div>
+    </div>
+  );
+};
+
+const CompanyMetrics = ({ ticker, metrics, currency, totalReports, onReportSelect }) => {
+  const [selectedReports, setSelectedReports] = React.useState(new Set());
+
+  const handleReportClick = (reportData) => {
+    const reportId = reportData.chronologicalOrder;
+    const newSelectedReports = new Set(selectedReports);
+
+    if (selectedReports.has(reportId)) {
+      newSelectedReports.delete(reportId);
+    } else {
+      newSelectedReports.add(reportId);
+    }
+
+    setSelectedReports(newSelectedReports);
+
+    // Call parent callback with selected report data
+    if (onReportSelect) {
+      onReportSelect({
+        id: reportId,
+        date: reportData["Publication Date"],
+        title: reportData["Report Title"],
+        reportNumber: reportData["Report Number"],
+        isSelected: newSelectedReports.has(reportId),
+        selectedReports: Array.from(newSelectedReports)
+      });
+    }
+  };
 
   // Sort metrics by publication date (oldest first) and add chronological order
   const sortedMetrics = metrics ? [...metrics].sort((a, b) => {
@@ -62,6 +113,22 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
             >
               📊 Overview
             </button>
+            {selectedReports.size > 0 && (
+              <button
+                onClick={() => {
+                  setSelectedReports(new Set());
+                  if (onReportSelect) {
+                    onReportSelect({
+                      selectedReports: [],
+                      clearAll: true
+                    });
+                  }
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+              >
+                Clear Selection ({selectedReports.size})
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -75,8 +142,13 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
               <div className="text-2xl font-bold text-blue-800">
                 {sortedMetrics.length}
               </div>
-              <div className="text-sm text-blue-600 font-medium">
+              <div className="text-sm text-blue-600 font-medium flex items-center justify-center gap-1">
                 Total Reports
+                <InfoTooltip
+                  title="Total Research Reports"
+                  formula="COUNT = Total number of reports published"
+                  explanation="We count all FRC research reports published for this company over the analysis period. Each report represents ongoing coverage and analysis by our research team."
+                />
               </div>
             </div>
             <div
@@ -95,11 +167,16 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                 {avgPriceChange.toFixed(1)}%
               </div>
               <div
-                className={`text-sm font-medium ${
+                className={`text-sm font-medium flex items-center justify-center gap-1 ${
                   avgPriceChange >= 0 ? "text-green-600" : "text-red-600"
                 }`}
               >
                 Avg Price Impact
+                <InfoTooltip
+                  title="30-Day Price Impact"
+                  formula="Average % = (Price after 30 days - Price at publication) ÷ Price at publication × 100"
+                  explanation="We calculate the percentage price change from when each report was published to 30 days later, then average all results. Shows how our research timing aligns with stock movements."
+                />
               </div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
@@ -111,22 +188,32 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                 {avgVolumeChange >= 0 ? "+" : ""}
                 {avgVolumeChange.toFixed(1)}%
               </div>
-              <div className="text-sm text-orange-600 font-medium">
+              <div className="text-sm text-orange-600 font-medium flex items-center justify-center gap-1">
                 Avg Volume Change
+                <InfoTooltip
+                  title="30-Day Volume Impact"
+                  formula="Volume Change % = (Volume after 30 days - Volume before) ÷ Volume before × 100"
+                  explanation="We measure the percentage change in trading volume from 30 days before our report to 30 days after, then average across all reports. Positive values show increased market interest."
+                />
               </div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
               <div className="text-2xl font-bold text-purple-800">
                 {avgVolumeSpike.toFixed(1)}%
               </div>
-              <div className="text-sm text-purple-600 font-medium">
+              <div className="text-sm text-purple-600 font-medium flex items-center justify-center gap-1">
                 Avg Volume Spike
+                <InfoTooltip
+                  title="5-Day Volume Spike"
+                  formula="Volume Spike % = (Peak 5-day volume - Average volume) ÷ Average volume × 100"
+                  explanation="We identify the highest trading volume spike within 5 days of publication compared to normal trading levels. Shows immediate market reaction to our research."
+                />
               </div>
             </div>
           </div>
 
           {/* Simple Overview Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto relative">
             <table className="w-full border-collapse border border-gray-300">
               <thead>
                 <tr className="bg-gray-100">
@@ -137,13 +224,34 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                     Report Details
                   </th>
                   <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                    30 Days Before
+                    <div className="flex items-center justify-center gap-1">
+                      30 Days Before
+                      <InfoTooltip
+                        title="Pre-Publication Baseline"
+                        formula="Baseline = Stock price at publication date + Average daily volume 30 days prior"
+                        explanation="Shows the market conditions before our research was published, including stock price on release date and average trading volume during the 30-day period before publication."
+                      />
+                    </div>
                   </th>
                   <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                    30 Days After
+                    <div className="flex items-center justify-center gap-1">
+                      30 Days After
+                      <InfoTooltip
+                        title="Post-Publication Results"
+                        formula="Results = Stock price 30 days later + Average daily volume 30 days after"
+                        explanation="Shows market conditions 30 days after our research publication, including final stock price and average trading volume during the post-publication period."
+                      />
+                    </div>
                   </th>
                   <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                    Impact Change
+                    <div className="flex items-center justify-center gap-1">
+                      Impact Change
+                      <InfoTooltip
+                        title="Research Impact Metrics"
+                        formula="Price Change = (Final Price - Initial Price) ÷ Initial Price × 100\nVolume Change = (Post Volume - Pre Volume) ÷ Pre Volume × 100"
+                        explanation="Measures the direct impact of our research by comparing price and volume changes over the 30-day analysis period. Green indicates positive price movement, blue shows volume increases."
+                      />
+                    </div>
                   </th>
                 </tr>
               </thead>
@@ -161,11 +269,26 @@ const CompanyMetrics = ({ ticker, metrics, currency, totalReports }) => {
                   const preAvgVolume = frc30.avg_volume_pre_30_days || report["Avg Volume Pre 30 Days"] || 0;
                   const postAvgVolume = frc30.avg_volume_post_30_days || report["Avg Volume Post 30 Days"] || 0;
 
+                  const isSelected = selectedReports.has(report.chronologicalOrder);
+
                   return (
-                    <tr key={index} className="hover:bg-gray-50">
+                    <tr
+                      key={index}
+                      className={`cursor-pointer transition-all ${
+                        isSelected
+                          ? 'bg-blue-50 hover:bg-blue-100 border-blue-200'
+                          : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => handleReportClick(report)}
+                    >
                       <td className="border border-gray-300 px-3 py-3 text-center">
-                        <div className="font-bold text-lg text-blue-600">
+                        <div className={`font-bold text-lg relative ${
+                          isSelected ? 'text-blue-700' : 'text-blue-600'
+                        }`}>
                           {report.chronologicalOrder}
+                          {isSelected && (
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+                          )}
                         </div>
                       </td>
                       <td className="border border-gray-300 px-4 py-3">

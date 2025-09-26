@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 
 /**
  * Enhanced Professional PDF Report Generator for Updated Branch
@@ -234,12 +234,14 @@ export async function exportProfessionalCompanyReport(
 
         // Try multiple chart selectors for different chart libraries
         const chartSelectors = [
-          ".js-plotly-plot", // Primary selector for react-plotly.js (AdvancedFRCChart)
+          ".lightweight-frc-chart", // Primary selector for new LightweightFRCChart
+          ".lightweight-frc-chart canvas", // Canvas inside lightweight chart
           '[data-testid="chart-container"]',
           ".chart-container",
+          "canvas", // For Chart.js or Lightweight Charts canvas
+          ".js-plotly-plot", // Fallback for old plotly charts
           ".plotly", // Alternative plotly selector
           ".plotly-graph-div", // Another plotly selector
-          "canvas", // For Chart.js
           ".recharts-wrapper", // For Recharts
           '[class*="plotly"]', // Any element with plotly in class name
         ];
@@ -248,18 +250,32 @@ export async function exportProfessionalCompanyReport(
 
         // Debug: Log all possible chart elements
         console.log('=== Chart Detection Debug ===');
+        console.log('Available lightweight-frc-chart elements:', document.querySelectorAll('.lightweight-frc-chart').length);
+        console.log('Available canvas elements:', document.querySelectorAll('canvas').length);
         console.log('Available plotly elements:', document.querySelectorAll('.js-plotly-plot').length);
         console.log('Available advanced-frc-chart elements:', document.querySelectorAll('.advanced-frc-chart').length);
-        console.log('Available canvas elements:', document.querySelectorAll('canvas').length);
 
-        // First, try to find AdvancedFRCChart specifically
-        const advancedChartContainer = document.querySelector('.advanced-frc-chart');
-        if (advancedChartContainer) {
-          console.log('Found advanced-frc-chart container');
-          const plotlyElement = advancedChartContainer.querySelector('.js-plotly-plot');
-          if (plotlyElement) {
-            chartElement = plotlyElement;
-            console.log('Found AdvancedFRCChart plotly element:', plotlyElement.offsetWidth, 'x', plotlyElement.offsetHeight);
+        // First, try to find LightweightFRCChart specifically
+        const lightweightChartContainer = document.querySelector('.lightweight-frc-chart');
+        if (lightweightChartContainer) {
+          console.log('Found lightweight-frc-chart container');
+          const canvasElement = lightweightChartContainer.querySelector('canvas');
+          if (canvasElement) {
+            chartElement = lightweightChartContainer; // Use the whole container for better capture
+            console.log('Found LightweightFRCChart canvas element:', canvasElement.offsetWidth, 'x', canvasElement.offsetHeight);
+          }
+        }
+
+        // Fallback: try to find old AdvancedFRCChart
+        if (!chartElement) {
+          const advancedChartContainer = document.querySelector('.advanced-frc-chart');
+          if (advancedChartContainer) {
+            console.log('Found advanced-frc-chart container (fallback)');
+            const plotlyElement = advancedChartContainer.querySelector('.js-plotly-plot');
+            if (plotlyElement) {
+              chartElement = plotlyElement;
+              console.log('Found AdvancedFRCChart plotly element:', plotlyElement.offsetWidth, 'x', plotlyElement.offsetHeight);
+            }
           }
         }
 
@@ -285,22 +301,31 @@ export async function exportProfessionalCompanyReport(
 
         if (chartElement) {
           try {
-            const canvas = await html2canvas(chartElement, {
-              backgroundColor: "#ffffff",
-              scale: 1.5,
-              useCORS: true,
-              allowTaint: true,
-              logging: false,
-              width: chartElement.scrollWidth,
-              height: chartElement.scrollHeight,
+            console.log('Using html-to-image for chart capture (modern and fast)');
+
+            // Use html-to-image for better performance and canvas support
+            const imgData = await toPng(chartElement, {
+              backgroundColor: '#ffffff',
+              pixelRatio: 2, // High resolution export
+              width: chartElement.scrollWidth || chartElement.offsetWidth,
+              height: chartElement.scrollHeight || chartElement.offsetHeight,
+              style: {
+                margin: '0',
+                padding: '0',
+              },
             });
 
-            if (canvas.width > 0 && canvas.height > 0) {
-              const imgData = canvas.toDataURL("image/png");
+            if (imgData) {
+              console.log('Chart captured successfully with html-to-image');
 
-              // Fixed chart size for consistent PDF output
+              // Calculate chart dimensions for PDF
+              const elementWidth = chartElement.scrollWidth || chartElement.offsetWidth;
+              const elementHeight = chartElement.scrollHeight || chartElement.offsetHeight;
+
+              // Calculate aspect ratio and size for PDF
+              const aspectRatio = elementHeight / elementWidth;
               const chartWidth = contentWidth;
-              const chartHeight = 100; // Fixed height for consistency regardless of screen size
+              const chartHeight = Math.min(150, Math.max(100, chartWidth * aspectRatio)); // Better height for charts
 
               checkPageSpace(chartHeight + 10);
 
@@ -314,6 +339,8 @@ export async function exportProfessionalCompanyReport(
               );
               currentY += chartHeight + 20;
               chartCaptured = true;
+            } else {
+              console.warn("Chart image data is empty or invalid");
             }
           } catch (captureError) {
             console.warn("Chart capture failed:", captureError);
@@ -351,7 +378,7 @@ export async function exportProfessionalCompanyReport(
       setColor(colors.primary);
       pdf.setFontSize(14);
       pdf.setFont("helvetica", "bold");
-      pdf.text("PERFORMANCE ANALYTICS", margin, currentY);
+      pdf.text("VOLUME PERFORMANCE ANALYTICS", margin, currentY);
       currentY += 8;
 
       // Sort metrics by publication date and add chronological order (like CompanyMetrics)
@@ -364,9 +391,12 @@ export async function exportProfessionalCompanyReport(
         chronologicalOrder: index + 1
       }));
 
-      // Calculate summary statistics
-      const avgPriceChange = sortedMetrics.reduce((sum, m) => sum + (m["Price Change 30 Days (%)"] || 0), 0) / sortedMetrics.length;
+      // Calculate volume-focused summary statistics
       const avgVolumeChange = sortedMetrics.reduce((sum, m) => sum + (m["Volume Change 30 Days (%)"] || 0), 0) / sortedMetrics.length;
+      const totalPreVolume = sortedMetrics.reduce((sum, m) => sum + (m["Avg Volume Pre 30 Days"] || 0), 0);
+      const totalPostVolume = sortedMetrics.reduce((sum, m) => sum + (m["Avg Volume Post 30 Days"] || 0), 0);
+      const avgPreVolume = totalPreVolume / sortedMetrics.length;
+      const avgPostVolume = totalPostVolume / sortedMetrics.length;
 
       // Summary Cards Row
       const cardWidth = (contentWidth - 15) / 4;
@@ -387,28 +417,27 @@ export async function exportProfessionalCompanyReport(
       pdf.setFont("helvetica", "normal");
       pdf.text("Total Reports", margin + 4, currentY + 14);
 
-      // Card 2: Avg Price Impact
+      // Card 2: Avg Volume Change
       const card2X = margin + cardWidth + 5;
-      const priceColor = avgPriceChange >= 0 ? [34, 197, 94] : [239, 68, 68];
-      const priceBg = avgPriceChange >= 0 ? [240, 253, 244] : [254, 242, 242];
+      const volColor = avgVolumeChange >= 0 ? [34, 197, 94] : [239, 68, 68];
+      const volBg = avgVolumeChange >= 0 ? [240, 253, 244] : [254, 242, 242];
 
-      setFillColor(priceBg);
+      setFillColor(volBg);
       pdf.roundedRect(card2X, currentY, cardWidth, cardHeight, 2, 2, "F");
-      setDrawColor(priceColor);
+      setDrawColor(volColor);
       pdf.setLineWidth(0.3);
       pdf.roundedRect(card2X, currentY, cardWidth, cardHeight, 2, 2, "S");
 
-      setColor(priceColor);
+      setColor(volColor);
       pdf.setFontSize(10);
       pdf.setFont("helvetica", "bold");
-      pdf.text(`${avgPriceChange >= 0 ? "+" : ""}${avgPriceChange.toFixed(1)}%`, card2X + 4, currentY + 8);
+      pdf.text(`${avgVolumeChange >= 0 ? "+" : ""}${avgVolumeChange.toFixed(1)}%`, card2X + 4, currentY + 8);
       pdf.setFontSize(7);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Avg Price Impact", card2X + 4, currentY + 14);
+      pdf.text("Avg Volume Change", card2X + 4, currentY + 14);
 
-      // Card 3: Avg Volume Change
+      // Card 3: Avg Pre Volume
       const card3X = margin + cardWidth * 2 + 10;
-      const volColor = avgVolumeChange >= 0 ? [34, 197, 94] : [239, 68, 68];
 
       setFillColor([255, 237, 213]);
       pdf.roundedRect(card3X, currentY, cardWidth, cardHeight, 2, 2, "F");
@@ -416,16 +445,18 @@ export async function exportProfessionalCompanyReport(
       pdf.setLineWidth(0.3);
       pdf.roundedRect(card3X, currentY, cardWidth, cardHeight, 2, 2, "S");
 
-      setColor(volColor);
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(`${avgVolumeChange >= 0 ? "+" : ""}${avgVolumeChange.toFixed(1)}%`, card3X + 4, currentY + 8);
       setColor([245, 158, 11]);
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "bold");
+      const avgPreVolumeDisplay = avgPreVolume > 1000000 ? `${(avgPreVolume / 1000000).toFixed(1)}M` :
+                                 avgPreVolume > 1000 ? `${(avgPreVolume / 1000).toFixed(0)}K` :
+                                 avgPreVolume.toFixed(0);
+      pdf.text(avgPreVolumeDisplay, card3X + 4, currentY + 8);
       pdf.setFontSize(7);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Avg Volume Change", card3X + 4, currentY + 14);
+      pdf.text("Avg Pre Volume", card3X + 4, currentY + 14);
 
-      // Card 4: Report Period
+      // Card 4: Avg Post Volume
       const card4X = margin + cardWidth * 3 + 15;
       setFillColor([245, 243, 255]);
       pdf.roundedRect(card4X, currentY, cardWidth, cardHeight, 2, 2, "F");
@@ -434,20 +465,20 @@ export async function exportProfessionalCompanyReport(
       pdf.roundedRect(card4X, currentY, cardWidth, cardHeight, 2, 2, "S");
 
       setColor([139, 92, 246]);
-      pdf.setFontSize(10);
+      pdf.setFontSize(8);
       pdf.setFont("helvetica", "bold");
-      const periodDays = sortedMetrics.length > 1 ?
-        Math.floor((new Date(sortedMetrics[sortedMetrics.length - 1]["Publication Date"]) -
-                   new Date(sortedMetrics[0]["Publication Date"])) / (1000 * 60 * 60 * 24)) : 0;
-      pdf.text(`${periodDays}d`, card4X + 4, currentY + 8);
+      const avgPostVolumeDisplay = avgPostVolume > 1000000 ? `${(avgPostVolume / 1000000).toFixed(1)}M` :
+                                  avgPostVolume > 1000 ? `${(avgPostVolume / 1000).toFixed(0)}K` :
+                                  avgPostVolume.toFixed(0);
+      pdf.text(avgPostVolumeDisplay, card4X + 4, currentY + 8);
       pdf.setFontSize(7);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Coverage Period", card4X + 4, currentY + 14);
+      pdf.text("Avg Post Volume", card4X + 4, currentY + 14);
 
       currentY += cardHeight + 12;
 
-      // Enhanced Table Headers
-      const headers = ["#", "Report Details", "30 Days Before", "30 Days After", "Impact Change"];
+      // Volume-Focused Table Headers
+      const headers = ["#", "Report Details", "Pre-Volume", "Post-Volume", "Volume Impact"];
       const colWidths = [12, 50, 38, 38, 32];
 
       // Table Header with gradient-like effect
@@ -484,16 +515,16 @@ export async function exportProfessionalCompanyReport(
         pdf.setLineWidth(0.2);
         pdf.rect(margin, currentY, contentWidth, 12, "S");
 
-        // Extract enhanced data like CompanyMetrics
+        // Extract volume-focused data
         const rawReport = report._raw || report;
         const frc30 = rawReport.frc_30_day_analysis || {};
 
-        const priceOnRelease = frc30.price_on_release || report["Price on Release"] || 0;
-        const priceAfter30Days = frc30.price_after_30_days || report["Price After 30 Days"] || 0;
-        const priceChange30d = frc30.price_change_30_days_pct || report["Price Change 30 Days (%)"] || 0;
         const volumeChange30d = frc30.volume_change_pre_post_30_days_pct || report["Volume Change 30 Days (%)"] || 0;
         const preAvgVolume = frc30.avg_volume_pre_30_days || report["Avg Volume Pre 30 Days"] || 0;
         const postAvgVolume = frc30.avg_volume_post_30_days || report["Avg Volume Post 30 Days"] || 0;
+        const volumeOnRelease = report["Volume on Release"] || preAvgVolume || 0;
+        const maxVolume = Math.max(preAvgVolume, postAvgVolume) || 0;
+        const minVolume = Math.min(preAvgVolume, postAvgVolume) || 0;
 
         startX = margin;
 
@@ -520,62 +551,63 @@ export async function exportProfessionalCompanyReport(
         pdf.text(`${pubDate} • #${report["Report Number"] || rowIndex + 1}`, startX + 2, currentY + 9);
         startX += colWidths[1];
 
-        // Column 3: 30 Days Before
+        // Column 3: Pre-Volume
         setColor([75, 85, 99]);
         pdf.setFontSize(6);
         pdf.setFont("helvetica", "normal");
-        pdf.text("Price on release", startX + 2, currentY + 3);
+        pdf.text("Pre-30d Avg Volume", startX + 2, currentY + 3);
 
         setColor([31, 41, 55]);
         pdf.setFontSize(8);
         pdf.setFont("helvetica", "bold");
-        pdf.text(`$${typeof priceOnRelease === 'number' ? priceOnRelease.toFixed(2) : priceOnRelease}`, startX + 2, currentY + 7);
+        const preVolumeDisplay = preAvgVolume > 1000000 ? `${(preAvgVolume / 1000000).toFixed(1)}M` :
+                                preAvgVolume > 1000 ? `${(preAvgVolume / 1000).toFixed(0)}K` :
+                                Math.round(preAvgVolume).toLocaleString();
+        pdf.text(preVolumeDisplay, startX + 2, currentY + 7);
 
         setColor([75, 85, 99]);
         pdf.setFontSize(6);
-        pdf.text("Pre-30d volume", startX + 2, currentY + 10);
+        pdf.text("shares/day", startX + 2, currentY + 10);
         startX += colWidths[2];
 
-        // Column 4: 30 Days After
+        // Column 4: Post-Volume
         setColor([75, 85, 99]);
         pdf.setFontSize(6);
         pdf.setFont("helvetica", "normal");
-        pdf.text("Price after 30d", startX + 2, currentY + 3);
+        pdf.text("Post-30d Avg Volume", startX + 2, currentY + 3);
 
         setColor([31, 41, 55]);
         pdf.setFontSize(8);
         pdf.setFont("helvetica", "bold");
-        pdf.text(`$${typeof priceAfter30Days === 'number' ? priceAfter30Days.toFixed(2) : priceAfter30Days}`, startX + 2, currentY + 7);
+        const postVolumeDisplay = postAvgVolume > 1000000 ? `${(postAvgVolume / 1000000).toFixed(1)}M` :
+                                 postAvgVolume > 1000 ? `${(postAvgVolume / 1000).toFixed(0)}K` :
+                                 Math.round(postAvgVolume).toLocaleString();
+        pdf.text(postVolumeDisplay, startX + 2, currentY + 7);
 
         setColor([75, 85, 99]);
         pdf.setFontSize(6);
-        pdf.text("Post-30d volume", startX + 2, currentY + 10);
+        pdf.text("shares/day", startX + 2, currentY + 10);
         startX += colWidths[3];
 
-        // Column 5: Impact Change (Badges)
-        // Price Change Badge
-        const priceColor = priceChange30d >= 0 ? [34, 197, 94] : [239, 68, 68];
-        const priceBgColor = priceChange30d >= 0 ? [240, 253, 244] : [254, 242, 242];
-
-        setFillColor(priceBgColor);
-        pdf.roundedRect(startX + 2, currentY + 1, 24, 4, 1, 1, "F");
-        setColor(priceColor);
-        pdf.setFontSize(6);
-        pdf.setFont("helvetica", "bold");
-        const priceText = `${priceChange30d >= 0 ? "+" : ""}${typeof priceChange30d === 'number' ? priceChange30d.toFixed(1) : priceChange30d}%`;
-        pdf.text(priceText, startX + 4, currentY + 3.5);
-
-        // Volume Change Badge
+        // Column 5: Volume Impact
+        // Volume Change Percentage Badge (larger)
         const volBgColor = volumeChange30d >= 0 ? [239, 246, 255] : [255, 237, 213];
         const volTextColor = volumeChange30d >= 0 ? [30, 64, 175] : [245, 158, 11];
 
         setFillColor(volBgColor);
-        pdf.roundedRect(startX + 2, currentY + 7, 24, 4, 1, 1, "F");
+        pdf.roundedRect(startX + 2, currentY + 2, 26, 5, 1, 1, "F");
         setColor(volTextColor);
-        pdf.setFontSize(6);
+        pdf.setFontSize(7);
         pdf.setFont("helvetica", "bold");
         const volText = `${volumeChange30d >= 0 ? "+" : ""}${typeof volumeChange30d === 'number' ? volumeChange30d.toFixed(1) : volumeChange30d}%`;
-        pdf.text(volText, startX + 4, currentY + 9.5);
+        pdf.text(volText, startX + 4, currentY + 5);
+
+        // Volume Ratio Indicator
+        setColor([75, 85, 99]);
+        pdf.setFontSize(5);
+        pdf.setFont("helvetica", "normal");
+        const volumeRatio = postAvgVolume > 0 && preAvgVolume > 0 ? (postAvgVolume / preAvgVolume).toFixed(1) : "N/A";
+        pdf.text(`${volumeRatio}x ratio`, startX + 4, currentY + 9);
 
         currentY += 12;
       });

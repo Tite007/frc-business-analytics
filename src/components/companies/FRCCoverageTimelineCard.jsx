@@ -10,7 +10,32 @@ import {
   ExclamationTriangleIcon,
   PlayIcon,
   StopIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
+
+// Tooltip component for information display
+const InfoTooltip = ({ title, formula, explanation }) => {
+  return (
+    <div className="group relative inline-block">
+      <InformationCircleIcon className="h-3 w-3 text-gray-400 hover:text-blue-600 cursor-help transition-colors" />
+      <div className="invisible group-hover:visible absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg min-w-80 max-w-96">
+        <div className="font-semibold text-blue-200 mb-2">{title}</div>
+        <div className="mb-2">
+          <span className="font-medium">Formula:</span>
+          <div className="font-mono bg-gray-800 p-2 rounded mt-1 text-green-300">
+            {formula}
+          </div>
+        </div>
+        <div>
+          <span className="font-medium">Explanation:</span>
+          <div className="mt-1 text-gray-300">{explanation}</div>
+        </div>
+        {/* Tooltip arrow */}
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+      </div>
+    </div>
+  );
+};
 
 export default function FRCCoverageTimelineCard({ company, chartData }) {
   // Calculate coverage metrics using actual API data
@@ -150,15 +175,25 @@ export default function FRCCoverageTimelineCard({ company, chartData }) {
 
         {metrics.hasReports && (
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div>
+            <div className="flex items-center gap-1">
               <span className="text-gray-500">Total Reports:</span>
-              <span className="font-medium text-gray-900 ml-1">{metrics.totalReports}</span>
+              <span className="font-medium text-gray-900">{metrics.totalReports}</span>
+              <InfoTooltip
+                title="Total Research Reports"
+                formula="COUNT = Total number of reports published"
+                explanation="We count all FRC research reports published for this company, including both digital interactive reports and PDF documents."
+              />
             </div>
-            <div>
+            <div className="flex items-center gap-1">
               <span className="text-gray-500">Stock Data:</span>
-              <span className="font-medium text-blue-600 ml-1">
+              <span className="font-medium text-blue-600">
                 {metrics.hasStockData ? `${metrics.stockDataPoints.toLocaleString()} points` : 'None'}
               </span>
+              <InfoTooltip
+                title="Market Data Points"
+                formula="COUNT = Stock price and volume data points"
+                explanation="Individual daily market data points (price, volume, etc.) collected for analysis and chart visualization over the coverage period."
+              />
             </div>
           </div>
         )}
@@ -170,6 +205,11 @@ export default function FRCCoverageTimelineCard({ company, chartData }) {
           <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
             <CalendarIcon className="h-3 w-3" />
             <span className="font-medium">Coverage Timeline</span>
+            <InfoTooltip
+              title="Research Coverage Timeline"
+              formula="Date Range = Last Report Date - First Report Date"
+              explanation="Timeline showing the period from our first research report to our most recent report for this company, indicating sustained coverage."
+            />
           </div>
 
           <div className="space-y-2 text-xs">
@@ -219,6 +259,11 @@ export default function FRCCoverageTimelineCard({ company, chartData }) {
           <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
             <ChartBarIcon className="h-3 w-3" />
             <span className="font-medium">Impact Analysis Available</span>
+            <InfoTooltip
+              title="Pre vs Post Coverage Analysis"
+              formula="Comparison = Pre-Coverage Period vs Coverage Period"
+              explanation="We analyze market performance during 90 days before our first report (baseline) versus the entire coverage period to measure FRC research impact."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
@@ -242,6 +287,11 @@ export default function FRCCoverageTimelineCard({ company, chartData }) {
           <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
             <DocumentTextIcon className="h-3 w-3" />
             <span className="font-medium">Report Types</span>
+            <InfoTooltip
+              title="Research Report Formats"
+              formula="Categorization = Digital Interactive + PDF Documents"
+              explanation="Digital reports offer interactive charts and real-time data, while PDF reports provide traditional downloadable research documents with comprehensive analysis."
+            />
           </div>
 
           <div className="flex gap-2">

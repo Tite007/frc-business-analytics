@@ -1646,6 +1646,67 @@ export async function getChartData(ticker) {
   }
 }
 
+// =============================================================================
+// FINANCIAL MODELING PREP API FUNCTIONS
+// Real-time stock quotes and financial data
+// =============================================================================
+
+// Get real-time stock quote from Financial Modeling Prep
+export async function getFinancialModelingPrepQuote(ticker) {
+  try {
+    const FMP_API_KEY = '4efd33045b70a3f91c002844c1673d0c';
+    const response = await fetch(
+      `https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${FMP_API_KEY}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (!data || data.length === 0) {
+      return {
+        error: true,
+        message: `No live data available for ticker ${ticker}`
+      };
+    }
+
+    const quote = data[0];
+
+    return {
+      success: true,
+      data: {
+        symbol: quote.symbol,
+        name: quote.name,
+        price: quote.price,
+        change: quote.change,
+        changePercentage: quote.changesPercentage,
+        volume: quote.volume,
+        dayLow: quote.dayLow,
+        dayHigh: quote.dayHigh,
+        yearHigh: quote.yearHigh,
+        yearLow: quote.yearLow,
+        marketCap: quote.marketCap,
+        priceAvg50: quote.priceAvg50,
+        priceAvg200: quote.priceAvg200,
+        exchange: quote.exchange,
+        open: quote.open,
+        previousClose: quote.previousClose,
+        timestamp: quote.timestamp,
+        lastUpdated: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    console.error(`Error fetching FMP quote for ${ticker}:`, error);
+    return {
+      error: true,
+      message: error.message,
+      status: error.response?.status
+    };
+  }
+}
+
 // NEW BLOOMBERG COMPANY NAME RESOLUTION API FUNCTIONS
 // Smart company name search and resolution for ticker mismatch handling
 
