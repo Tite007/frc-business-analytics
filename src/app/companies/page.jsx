@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/components/AuthContext";
 import { getCompanies } from "@/lib/api";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, InformationCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Chip } from "@heroui/chip";
 import EnhancedCompaniesTable from "@/components/companies/EnhancedCompaniesTable";
@@ -15,6 +15,7 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSummary, setShowSummary] = useState(true);
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     async function fetchCompanies() {
@@ -186,10 +187,19 @@ export default function CompaniesPage() {
               </div>
             )}
 
-            {/* Page Title */}
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              FRC Companies Dashboard
-            </h1>
+            {/* Page Title with Info Button */}
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <h1 className="text-4xl font-bold text-gray-900">
+                FRC Companies Dashboard
+              </h1>
+              <button
+                onClick={() => setShowInfo(!showInfo)}
+                className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 transition-colors"
+                title="Learn how to search and explore companies"
+              >
+                <InformationCircleIcon className="h-6 w-6" />
+              </button>
+            </div>
 
             {/* Description */}
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
@@ -202,6 +212,125 @@ export default function CompaniesPage() {
           </div>
         </div>
 
+        {/* Info Panel */}
+        {showInfo && (
+          <div className="mb-8 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border border-blue-200 overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+                  <InformationCircleIcon className="h-6 w-6" />
+                  How to Use the Companies Dashboard
+                </h2>
+                <button
+                  onClick={() => setShowInfo(false)}
+                  className="p-1 rounded-full hover:bg-blue-200 text-blue-600 transition-colors"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Search Tips */}
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    🔍 Search Tips
+                  </h3>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li>• Search by <strong>company name</strong>: "HydroGraph"</li>
+                    <li>• Search by <strong>ticker symbol</strong>: "HGC"</li>
+                    <li>• Search is <strong>case-insensitive</strong></li>
+                    <li>• Partial matches work: "Hydro" finds "HydroGraph"</li>
+                    <li>• Use the tabs to filter by exchange</li>
+                  </ul>
+                </div>
+
+                {/* Data Availability */}
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    📊 Available Data
+                  </h3>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li>• <strong>Company profiles</strong> and basic info</li>
+                    <li>• <strong>FRC research reports</strong> (digital & PDF)</li>
+                    <li>• <strong>Stock price charts</strong> with report markers</li>
+                    <li>• <strong>Volume impact analysis</strong></li>
+                    <li>• <strong>AI-generated insights</strong></li>
+                    <li>• <strong>Bloomberg readership data</strong></li>
+                  </ul>
+                </div>
+
+                {/* Exchange Categories */}
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    🏛️ Exchange Categories
+                  </h3>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <div>
+                      <strong>🇺🇸 US Markets:</strong>
+                      <div className="text-xs mt-1">NYSE, NASDAQ, AMEX, OTC</div>
+                    </div>
+                    <div>
+                      <strong>🇨🇦 Canadian Markets:</strong>
+                      <div className="text-xs mt-1">TSX, TSXV, CNQ, NEO</div>
+                    </div>
+                    <div>
+                      <strong>🌍 All Companies:</strong>
+                      <div className="text-xs mt-1">Combined view of all markets</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Company Status */}
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    📈 Data Quality Indicators
+                  </h3>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li>• <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span><strong>Full Data:</strong> Charts + Reports + Analysis</li>
+                    <li>• <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span><strong>Reports Only:</strong> Research reports available</li>
+                    <li>• <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-2"></span><strong>Basic Info:</strong> Company profile only</li>
+                    <li>• <span className="inline-block w-3 h-3 bg-purple-500 rounded-full mr-2"></span><strong>Bloomberg Data:</strong> Institutional readership</li>
+                  </ul>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    ⚡ Quick Actions
+                  </h3>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li>• Click <strong>company name</strong> to view full dashboard</li>
+                    <li>• Use <strong>Clear</strong> button to reset search</li>
+                    <li>• Switch between <strong>exchange tabs</strong></li>
+                    <li>• Companies are sorted <strong>alphabetically</strong></li>
+                    <li>• Pagination available for large lists</li>
+                  </ul>
+                </div>
+
+                {/* Data Sources */}
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    🔗 Data Sources
+                  </h3>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li>• <strong>FRC Research:</strong> Proprietary analysis & reports</li>
+                    <li>• <strong>Market Data:</strong> Real-time stock prices & volume</li>
+                    <li>• <strong>Bloomberg Terminal:</strong> Institutional readership</li>
+                    <li>• <strong>AI Analysis:</strong> Machine learning insights</li>
+                    <li>• <strong>Exchange Data:</strong> Official listing information</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 bg-blue-600 text-white rounded-lg">
+                <p className="text-center font-medium">
+                  💡 <strong>Pro Tip:</strong> Use the search bar above to quickly find specific companies, then click on any company name to access detailed analytics, research reports, and performance data.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Summary Dashboard - Show conditionally */}
         {showSummary && companies.length > 0 && (
           <CompaniesSummaryDashboard
@@ -210,32 +339,100 @@ export default function CompaniesPage() {
           />
         )}
 
-        {/* Search Section */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        {/* Enhanced Search Section */}
+        <div className="bg-gradient-to-r from-white to-blue-50 rounded-xl shadow-lg border border-blue-100 p-6 mb-8">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <MagnifyingGlassIcon className="h-5 w-5 text-blue-600" />
+              Search Companies
+            </h2>
+            <p className="text-sm text-gray-600">
+              Search through {companies.length} FRC-covered companies by name or ticker symbol
+              {!showInfo && (
+                <button
+                  onClick={() => setShowInfo(true)}
+                  className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                >
+                  (Need help?)
+                </button>
+              )}
+            </p>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search companies by name or ticker..."
+                placeholder="e.g., 'HydroGraph' or 'HGC' or 'Tesla' or 'TSLA'..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all duration-300"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all duration-300 bg-white"
               />
             </div>
-            {searchTerm && (
+
+            <div className="flex gap-2">
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors bg-white"
+                >
+                  Clear
+                </button>
+              )}
+
               <button
-                onClick={() => setSearchTerm("")}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => setShowInfo(!showInfo)}
+                className="px-4 py-2 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors flex items-center gap-1"
+                title="Search tips and help"
               >
-                Clear
+                <InformationCircleIcon className="h-4 w-4" />
+                Help
               </button>
-            )}
+            </div>
           </div>
 
+          {/* Search Results Summary */}
           {searchTerm && (
-            <div className="mt-4 text-sm text-gray-600">
-              Found {filteredCompanies.length} companies matching "{searchTerm}"
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-800 font-medium">
+                  🔍 Found {filteredCompanies.length} companies matching "{searchTerm}"
+                </span>
+                {filteredCompanies.length > 0 && (
+                  <span className="text-xs text-blue-600">
+                    ({usCompanies.filter(c =>
+                      c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    ).length} US, {canadianCompanies.filter(c =>
+                      c.ticker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    ).length} Canadian)
+                  </span>
+                )}
+              </div>
+
+              {filteredCompanies.length === 0 && (
+                <div className="mt-2 text-sm text-blue-700">
+                  💡 Try searching for partial names like "Hydro" or common tickers like "AAPL", "TSLA", "SHOP"
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick Search Examples */}
+          {!searchTerm && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="text-sm text-gray-500">Quick examples:</span>
+              {["HydroGraph", "Tesla", "Shopify", "HGC", "TSLA", "SHOP"].map((example) => (
+                <button
+                  key={example}
+                  onClick={() => setSearchTerm(example)}
+                  className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors"
+                >
+                  {example}
+                </button>
+              ))}
             </div>
           )}
         </div>

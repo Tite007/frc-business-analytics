@@ -129,48 +129,71 @@ export default function PDFExportButton({
   };
 
   return (
-    <div className="relative">
-      <button
-        onClick={handleExport}
-        disabled={isExporting}
-        className={`
-          inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
-          ${isExporting
-            ? 'bg-gray-400 text-white cursor-not-allowed'
-            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg'
-          }
-          ${className}
-        `}
-        title="Export company report as PDF"
-        {...props}
-      >
-        <ArrowDownTrayIcon className="w-5 h-5" />
-        <span>
-          {isExporting ? 'Generating Professional Report...' : 'Export Report'}
-        </span>
-
-        {isExporting && (
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-        )}
-      </button>
-
-      {/* Status message */}
-      {exportStatus && (
-        <div className={`
-          absolute top-full left-0 mt-2 p-3 rounded-lg shadow-lg z-50 min-w-max
-          ${exportStatus.type === 'success'
-            ? 'bg-green-50 border border-green-200 text-green-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
-          }
-        `}>
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${
-              exportStatus.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            }`}></div>
-            <span className="text-sm font-medium">{exportStatus.message}</span>
+    <>
+      {/* Global progress indicator */}
+      {isExporting && (
+        <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg border border-blue-500">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm">📄 Generating PDF Report</span>
+              <span className="text-xs text-blue-100">Please wait while we prepare your report...</span>
+            </div>
+          </div>
+          {/* Progress bar animation */}
+          <div className="mt-2 w-full bg-blue-500 rounded-full h-1">
+            <div className="bg-white h-1 rounded-full animate-pulse" style={{animation: 'progressPulse 2s ease-in-out infinite'}}></div>
           </div>
         </div>
       )}
-    </div>
+
+      <div className="relative">
+        {/* Loading overlay for button */}
+        {isExporting && (
+          <div className="absolute inset-0 bg-blue-600 rounded-lg flex items-center justify-center z-10">
+            <div className="flex items-center gap-2 text-white">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+              <span className="font-medium text-sm whitespace-nowrap">Generating...</span>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleExport}
+          disabled={isExporting}
+          className={`
+            inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 min-w-max relative
+            ${isExporting
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-30'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg'
+            }
+            ${className}
+          `}
+          title={isExporting ? "Generating PDF report..." : "Export company report as PDF"}
+          {...props}
+        >
+          <ArrowDownTrayIcon className="w-5 h-5" />
+          <span className="whitespace-nowrap">Export Report</span>
+        </button>
+
+        {/* Status message */}
+        {exportStatus && (
+          <div className={`
+            absolute top-full left-0 mt-2 p-3 rounded-lg shadow-lg z-50 min-w-max
+            ${exportStatus.type === 'success'
+              ? 'bg-green-50 border border-green-200 text-green-800'
+              : 'bg-red-50 border border-red-200 text-red-800'
+            }
+          `}>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                exportStatus.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+              }`}></div>
+              <span className="text-sm font-medium">{exportStatus.message}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

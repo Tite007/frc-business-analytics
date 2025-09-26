@@ -319,16 +319,6 @@ export default function EnhancedDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Data Summary Dashboard */}
-      {hasMetricsData && (
-        <DataSummaryDashboard
-          metricsData={metricsData}
-          companyData={companyData}
-          ticker={ticker}
-          onViewDetails={() => setActiveTab("metrics")}
-        />
-      )}
-
       {/* Quick Access Menu - Mobile Only */}
       <QuickAccessMenu
         activeTab={activeTab}
@@ -379,7 +369,23 @@ export default function EnhancedDashboard({
         <div className="p-4 lg:p-6">
           {activeTab === "overview" && (
             <div className="space-y-6 lg:space-y-8">
-              {/* FRC Impact Analysis */}
+              {/* Data Summary Dashboard - Overview and Quick Stats */}
+              <DataSummaryDashboard
+                ticker={ticker}
+                companyName={getCompanyName()}
+                exchange={getExchange()}
+                currency={getCurrency()}
+                totalReports={getTotalReports()}
+                summaryMetrics={summaryMetrics}
+                chartData={chartData}
+                metricsData={metricsData}
+                analysisData={analysisData}
+                hasChartData={hasChartData}
+                hasMetricsData={hasMetricsData}
+                hasAnalysisData={hasAnalysisData}
+              />
+
+              {/* FRC Impact Analysis - Consolidates chart, timeline, and coverage info */}
               <FRCImpactDashboard
                 company={{
                   ticker: ticker,
@@ -400,15 +406,31 @@ export default function EnhancedDashboard({
 
               {/* Quick Metrics Overview */}
               {hasMetricsData && (
-                <div className="bg-gray-50 rounded-lg p-4 lg:p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Quick Overview
-                    </h3>
-
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        📊 Quick Metrics Overview
+                      </h3>
+                      <p className="text-gray-600">
+                        Key performance indicators from FRC research impact
+                      </p>
+                    </div>
+                    <div className="mt-4 lg:mt-0">
+                      <PDFExportButton
+                        companyData={companyData}
+                        chartData={chartData}
+                        metricsData={metricsData}
+                        analysisData={analysisData}
+                        bloombergData={bloombergData}
+                        ticker={ticker}
+                        className="px-4 py-2"
+                      />
+                    </div>
                   </div>
+
                   <TableComponent
-                    metrics={metricsData || []}
+                    metrics={filteredMetricsData || []}
                     ticker={ticker}
                     currency={getCurrency()}
                     totalReports={getTotalReports()}
@@ -434,7 +456,6 @@ export default function EnhancedDashboard({
               )}
             </div>
           )}
-
 
 
           {activeTab === "analysis" && (

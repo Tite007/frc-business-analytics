@@ -7,7 +7,6 @@ import {
   DocumentTextIcon,
   CurrencyDollarIcon,
   CalendarDaysIcon,
-  EyeIcon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
@@ -39,7 +38,6 @@ export default function DataSummaryDashboard({
   metricsData,
   companyData,
   ticker,
-  onViewDetails,
 }) {
   if (!metricsData || metricsData.length === 0) {
     return null;
@@ -93,7 +91,7 @@ export default function DataSummaryDashboard({
 
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 mb-8">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+      <div className="mb-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             Performance Overview
@@ -103,14 +101,6 @@ export default function DataSummaryDashboard({
             {totalReports !== 1 ? "s" : ""}
           </p>
         </div>
-
-        <button
-          onClick={onViewDetails}
-          className="mt-4 lg:mt-0 inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg"
-        >
-          <EyeIcon className="h-5 w-5" />
-          View Detailed Data
-        </button>
       </div>
 
       {/* Key Metrics Grid */}
@@ -302,19 +292,24 @@ export default function DataSummaryDashboard({
               </span>
             </div>
 
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Volume Impact:</span>
-              <span
-                className={`font-semibold ${
-                  (mostRecentReport["Volume Change Pre-Post 30 Days (%)"] || 0) >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {formatPercentage(
-                  mostRecentReport["Volume Change Pre-Post 30 Days (%)"] || 0
-                )}
-              </span>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">30-Day Volume Impact:</span>
+                <span
+                  className={`font-semibold ${
+                    (mostRecentReport["Volume Change Pre-Post 30 Days (%)"] || 0) >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {formatPercentage(
+                    mostRecentReport["Volume Change Pre-Post 30 Days (%)"] || 0
+                  )}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Average daily volume change: 30 days before vs 30 days after publication (Source: Market data)
+              </p>
             </div>
           </div>
         </div>
@@ -355,13 +350,18 @@ export default function DataSummaryDashboard({
               </span>
             </div>
 
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Volume Impact:</span>
-              <span className="font-semibold text-green-600">
-                {formatPercentage(
-                  bestPerformingReport["Volume Change Pre-Post 30 Days (%)"] || 0
-                )}
-              </span>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">30-Day Volume Impact:</span>
+                <span className="font-semibold text-green-600">
+                  {formatPercentage(
+                    bestPerformingReport["Volume Change Pre-Post 30 Days (%)"] || 0
+                  )}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Average daily volume change: 30 days before vs 30 days after publication (Source: Market data)
+              </p>
             </div>
           </div>
         </div>

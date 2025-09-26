@@ -48,7 +48,8 @@ export default function BloombergAnalyticsDashboard() {
     timeRange: 90,
     country: 'all',
     minReads: 5,
-    includeEmbargoed: true
+    includeEmbargoed: true,
+    institutionLimit: 50
   });
 
   const [searchTicker, setSearchTicker] = useState('');
@@ -56,7 +57,7 @@ export default function BloombergAnalyticsDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [filters.timeRange]);
+  }, [filters.timeRange, filters.institutionLimit, filters.minReads]);
 
   useEffect(() => {
     if (searchTicker && searchTicker.length > 1) {
@@ -72,7 +73,7 @@ export default function BloombergAnalyticsDashboard() {
       const [healthStatus, topCompanies, topInstitutions, mostReadReports] = await Promise.all([
         getBloombergHealth(),
         getAllBloombergCompanies(),
-        getBloombergV3Institutions({ limit: 25, min_reads: filters.minReads }),
+        getBloombergV3Institutions({ limit: filters.institutionLimit, min_reads: filters.minReads }),
         getBloombergV3MostReadReports({ days: filters.timeRange, limit: 20 })
       ]);
 
@@ -289,6 +290,18 @@ export default function BloombergAnalyticsDashboard() {
                       <option key={country} value={country}>{country}</option>
                     ))}
                   </select>
+
+                  <select
+                    value={filters.institutionLimit}
+                    onChange={(e) => setFilters(prev => ({ ...prev, institutionLimit: parseInt(e.target.value) }))}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80"
+                  >
+                    <option value={25}>Top 25 Institutions</option>
+                    <option value={50}>Top 50 Institutions</option>
+                    <option value={100}>Top 100 Institutions</option>
+                    <option value={250}>Top 250 Institutions</option>
+                    <option value={500}>Top 500 Institutions</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -479,7 +492,7 @@ export default function BloombergAnalyticsDashboard() {
                         onClick={() => setActiveView('institutions')}
                         className="w-full mt-4 text-center text-sm text-emerald-600 hover:text-emerald-700 font-medium"
                       >
-                        View All {analytics.platformMetrics.activeInstitutions} Institutions &rarr;
+                        View All {filteredData.institutions.length} Institutions (showing top {filters.institutionLimit}) &rarr;
                       </button>
                     </div>
                   </div>
@@ -585,12 +598,17 @@ export default function BloombergAnalyticsDashboard() {
             {/* Similar detailed views for institutions, reports, and matching... */}
             {activeView === 'institutions' && (
               <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-white/30 shadow-lg">
-                <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                  <BuildingOfficeIcon className="h-6 w-6 text-emerald-600" />
-                  Elite Institutions ({filteredData.institutions.length})
-                </h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                    <BuildingOfficeIcon className="h-6 w-6 text-emerald-600" />
+                    Elite Institutions ({filteredData.institutions.length})
+                  </h3>
+                  <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    Showing top {filters.institutionLimit} • {analytics.platformMetrics.totalReadership.toLocaleString()} total reads
+                  </div>
+                </div>
                 <div className="space-y-4">
-                  {filteredData.institutions.slice(0, 20).map((institution, index) => (
+                  {filteredData.institutions.map((institution, index) => (
                     <div key={institution.institution_id} className={`p-4 rounded-lg ${
                       institution.is_embargoed_entity
                         ? 'bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-l-orange-400'
